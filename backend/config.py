@@ -15,6 +15,10 @@ DATABASE_URL = os.getenv(
     'DATABASE_URL',
     'sqlite:///' + os.path.join(os.path.dirname(__file__), 'cognivara.db')
 )
+if DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+psycopg://', 1)
+elif DATABASE_URL.startswith('postgresql://'):
+    DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://', 1)
 
 # ── Server ────────────────────────────────────────────────
 FASTAPI_PORT = int(os.getenv('FASTAPI_PORT', '8000'))
