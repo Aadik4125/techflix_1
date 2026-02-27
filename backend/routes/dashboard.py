@@ -118,3 +118,46 @@ def get_baseline_status(user_id: int, db: DBSession = Depends(get_db)):
         'feature_means': baseline.feature_means if baseline else None,
         'feature_stds': baseline.feature_stds if baseline else None,
     }
+
+
+@router.get('/users')
+def list_users(db: DBSession = Depends(get_db)):
+    """Temporary admin-style endpoint to inspect user rows as JSON."""
+    users = db.query(User).order_by(User.id.desc()).all()
+    return {
+        'count': len(users),
+        'users': [
+            {
+                'id': u.id,
+                'name': u.name,
+                'email': u.email,
+                'age': u.age,
+                'gender': u.gender,
+                'latest_csi_score': u.latest_csi_score,
+                'total_sessions': u.total_sessions,
+                'last_session_at': u.last_session_at.isoformat() if u.last_session_at else None,
+                'created_at': u.created_at.isoformat() if u.created_at else None,
+            }
+            for u in users
+        ],
+    }
+
+
+@router.get('/sessions')
+def list_sessions(db: DBSession = Depends(get_db)):
+    """Temporary admin-style endpoint to inspect session rows as JSON."""
+    sessions = db.query(Session).order_by(Session.id.desc()).all()
+    return {
+        'count': len(sessions),
+        'sessions': [
+            {
+                'id': s.id,
+                'user_id': s.user_id,
+                'session_number': s.session_number,
+                'transcript': s.transcript,
+                'csi_score': s.csi_score,
+                'created_at': s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in sessions
+        ],
+    }
