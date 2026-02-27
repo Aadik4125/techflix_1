@@ -281,7 +281,7 @@
       const spread = (sortedRisk[sortedRisk.length - 1] ?? 50) - (sortedRisk[0] ?? 50);
       let riskScore = Math.round(riskMedian * 0.55 + riskMean * 0.45);
       // Damp high volatility across sessions to keep scoring fair and stable.
-      const neutralPull = Math.max(0, Math.min(0.22, (spread - 15) / 100));
+      const neutralPull = Math.max(0, Math.min(0.32, (spread - 12) / 85));
       riskScore = clampScore(Math.round(riskScore * (1 - neutralPull) + 50 * neutralPull));
 
       let riskLabel, riskClass, riskColor, gradStop1, gradStop2, deltaText, deltaArrow;
@@ -322,7 +322,11 @@
       function isInvalidTranscript(t) {
         if (!t || !t.text || !t.text.trim()) return true;
         const lower = t.text.toLowerCase();
-        return lower.includes('no speech recognized') || lower.includes('waiting for whisper');
+        return (
+          lower.includes('no speech recognized') ||
+          lower.includes('waiting for whisper') ||
+          lower.includes('transcript pending')
+        );
       }
 
       const invalid = transcripts.filter(isInvalidTranscript);
@@ -848,11 +852,14 @@
       candidates.push('http://localhost:3000', 'http://127.0.0.1:3000');
 
       for (const base of candidates) {
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
           try {
             const fd = new FormData();
             fd.append('audio', blob, 'recording.wav');
-            const resp = await fetch(`${base}/transcribe`, { method: 'POST', body: fd });
+            const ctrl = new AbortController();
+            const timeout = setTimeout(() => ctrl.abort(), 15000);
+            const resp = await fetch(`${base}/transcribe`, { method: 'POST', body: fd, signal: ctrl.signal });
+            clearTimeout(timeout);
             const jd = await resp.json().catch(() => ({}));
             if (!resp.ok) continue;
             // Ignore demo/fallback transcriptions; only accept real model output.
@@ -1089,7 +1096,7 @@
       const sessionId = currentStep;
       // Prefer browser transcript when available; otherwise fill from server transcription.
       const browserText = (sessionTranscript.trim() || liveTranscriptSnapshot || '').trim();
-      const initialText = browserText || 'Transcribing from recorded audio...';
+      const initialText = browserText || 'Transcript pending...';
       allTranscripts.push({ session: sessionId, text: initialText });
 
       // Hide live transcript box
@@ -1132,23 +1139,9 @@
               return;
             }
             const rawBlob = new Blob(chunksRef, { type: mimeTypeRef || 'audio/webm' });
-            let transcriptText = browserText;
-            if (!transcriptText) {
-              // Transcribe raw recording first to avoid decode failures affecting text extraction.
-              const transcribed = await transcribeSessionAudio(rawBlob);
-              transcriptText = (transcribed || '').trim();
-              const idx = allTranscripts.findIndex(x => x.session === sessionId);
-              if (transcriptText) {
-                if (idx >= 0) allTranscripts[idx].text = transcriptText;
-                document.getElementById('stc-text').textContent = transcriptText;
-                document.getElementById('stc-words').textContent = `${transcriptText.split(' ').filter(w => w).length} words`;
-              } else {
-                transcriptText = 'Transcription unavailable for this session.';
-                if (idx >= 0) allTranscripts[idx].text = transcriptText;
-                document.getElementById('stc-text').textContent = transcriptText;
-                document.getElementById('stc-words').textContent = '0 words';
-              }
-            }
+            // Do not block backend upload on transcription API latency.
+            // If browser transcript is unavailable, upload with empty transcript.
+            const transcriptText = browserText || '';
 
             // Prefer WAV for backend feature extraction; fallback to raw blob if conversion fails.
             let uploadBlob = rawBlob;
@@ -1164,6 +1157,22 @@
             const uploadResult = await uploadSessionForFeatureExtraction(uploadBlob, sessionId, transcriptText, uploadName);
             if (uploadResult && !uploadResult.skipped) {
               currentRunSessionAnalytics[sessionId] = uploadResult;
+            }
+
+            // Background transcription only updates UI text; it does not block analysis.
+            if (!browserText) {
+              const transcribed = await transcribeSessionAudio(rawBlob);
+              const idx = allTranscripts.findIndex(x => x.session === sessionId);
+              if (transcribed && transcribed.trim()) {
+                const resolvedText = transcribed.trim();
+                if (idx >= 0) allTranscripts[idx].text = resolvedText;
+                document.getElementById('stc-text').textContent = resolvedText;
+                document.getElementById('stc-words').textContent = `${resolvedText.split(' ').filter(w => w).length} words`;
+              } else if (idx >= 0 && allTranscripts[idx].text.toLowerCase().includes('pending')) {
+                allTranscripts[idx].text = 'Transcript unavailable for this session.';
+                document.getElementById('stc-text').textContent = 'Transcript unavailable for this session.';
+                document.getElementById('stc-words').textContent = '0 words';
+              }
             }
           } catch (e) {
             console.warn('Session analytics upload failed', e);
