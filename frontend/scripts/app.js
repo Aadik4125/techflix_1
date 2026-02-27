@@ -851,6 +851,15 @@
       return { skipped: true, error: (lastErr && lastErr.message) || 'Upload failed' };
     }
 
+    async function waitForPendingSessionUploads(maxMs = 45000) {
+      const jobs = Object.values(pendingTranscriptions);
+      if (!jobs.length) return;
+      await Promise.race([
+        Promise.allSettled(jobs),
+        new Promise(resolve => setTimeout(resolve, maxMs))
+      ]);
+    }
+
     async function transcribeSessionAudio(blob) {
       if (!blob) return null;
       const candidates = [];
@@ -1134,7 +1143,7 @@
                 const done = () => resolve();
                 recorderRef.addEventListener('stop', done, { once: true });
                 try { recorderRef.stop(); } catch (e) { resolve(); }
-                setTimeout(resolve, 3000);
+                setTimeout(resolve, 1200);
               });
             }
             if (!chunksRef || chunksRef.length === 0) {
@@ -1151,18 +1160,28 @@
             // If browser transcript is unavailable, upload with empty transcript.
             const transcriptText = browserText || '';
 
-            // Prefer WAV for backend feature extraction; fallback to raw blob if conversion fails.
-            let uploadBlob = rawBlob;
-            let uploadName = `session-${sessionId}.webm`;
-            try {
-              const wavBlob = await convertRecordedBlobToWav(rawBlob);
-              uploadBlob = wavBlob;
-              uploadName = `session-${sessionId}.wav`;
-            } catch (convertErr) {
-              console.warn('WAV conversion failed, uploading raw media blob:', convertErr);
+            // Upload raw blob first for speed. Convert/retry only if backend rejects it.
+            let uploadResult = await uploadSessionForFeatureExtraction(
+              rawBlob,
+              sessionId,
+              transcriptText,
+              `session-${sessionId}.webm`
+            );
+
+            if (!uploadResult || uploadResult.skipped) {
+              try {
+                const wavBlob = await convertRecordedBlobToWav(rawBlob);
+                uploadResult = await uploadSessionForFeatureExtraction(
+                  wavBlob,
+                  sessionId,
+                  transcriptText,
+                  `session-${sessionId}.wav`
+                );
+              } catch (convertErr) {
+                console.warn('WAV fallback conversion failed:', convertErr);
+              }
             }
 
-            const uploadResult = await uploadSessionForFeatureExtraction(uploadBlob, sessionId, transcriptText, uploadName);
             if (uploadResult && !uploadResult.skipped) {
               currentRunSessionAnalytics[sessionId] = uploadResult;
             }
@@ -1233,7 +1252,7 @@
         document.getElementById('transcript-box').style.display = 'none';
 
         Promise.resolve()
-          .then(() => Promise.all(Object.values(pendingTranscriptions)))
+          .then(() => waitForPendingSessionUploads(45000))
           .then(() => {
             const atc = document.getElementById('all-transcripts-content');
             atc.innerHTML = allTranscripts.map(t =>
