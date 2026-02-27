@@ -1,0 +1,23 @@
+node_modules/
+.venv/
+.env
+.env.*
+!.env.example
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Local backend runtime data
+backend/uploads/
+backend/cognivara.db
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

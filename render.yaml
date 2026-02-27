@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: cognivara-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cognivara-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: cognivara-node
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: HF_API_KEY
+        sync: false
+      - key: HF_STT_MODEL
+        value: openai/whisper-large-v3-turbo
+      - key: HF_STT_FALLBACK_MODEL
+        value: openai/whisper-large-v3
+      - key: HF_ANALYSIS_MODEL
+        value: j-hartmann/emotion-english-distilroberta-base
+      - key: HF_EMOTION_MODEL
+        value: j-hartmann/emotion-english-distilroberta-base
+      - key: HF_SENTIMENT_MODEL
+        value: cardiffnlp/twitter-roberta-base-sentiment-latest
+      - key: HF_SENTIMENT_FALLBACK_MODEL
+        value: distilbert/distilbert-base-uncased-finetuned-sst-2-english
+
+databases:
+  - name: cognivara-db
+    plan: free

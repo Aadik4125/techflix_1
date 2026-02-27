@@ -1,0 +1,109 @@
+<!-- ══════════ RECORDING ══════════ -->
+<div id="recording-section">
+    <section id="recording" style="padding-top:0;">
+        <div style="text-align:center;margin-bottom:48px;" class="reveal">
+            <div class="section-eyebrow">Voice Analysis</div>
+            <h2 class="section-title">Establish Your Baseline</h2>
+            <p class="section-sub">Complete 3 short recordings to calibrate your personal cognitive baseline.</p>
+        </div>
+        <div class="recording-section reveal">
+
+            <!-- REDO BUTTON (shown above mic after a session completes) -->
+            <button class="redo-recording-btn" id="redo-btn" onclick="redoLastRecording()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
+                </svg>
+                Redo Last Recording
+            </button>
+
+            <div class="record-button-wrap">
+                <div class="record-ring" id="record-ring"></div>
+                <div class="record-ring2" id="record-ring2"></div>
+                <button class="record-button disabled" id="record-btn" onclick="toggleRecord()" disabled>
+                    <svg id="mic-idle" class="record-icon-idle" width="42" height="42" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="23" />
+                        <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                    <svg id="mic-active" class="record-icon-active" width="34" height="34" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                    <span class="record-label" id="record-label">Tap to Record</span>
+                </button>
+            </div>
+            <div class="timer" id="timer">0:30</div>
+            <div class="session-counter" id="session-counter">Session 1 / 3</div>
+            <div class="timer-label" id="timer-label">Speak naturally - describe your day</div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar" id="progress-bar" style="width:0%;"></div>
+            </div>
+            <div class="baseline-steps">
+                <div class="baseline-step active" id="step-1">
+                    <div class="step-dot"></div>Recording 1 of 3
+                </div>
+                <div class="baseline-step" id="step-2">
+                    <div class="step-dot"></div>Recording 2 of 3
+                </div>
+                <div class="baseline-step" id="step-3">
+                    <div class="step-dot"></div>Recording 3 of 3
+                </div>
+            </div>
+
+            <!-- LIVE TRANSCRIPT BOX (while recording) -->
+            <div class="transcript-box" id="transcript-box" style="display:none;">
+                <div class="transcript-label">Live Transcript</div>
+                <div class="transcript-text" id="transcript-text">Waiting for speech...</div>
+            </div>
+
+            <!-- SESSION TRANSCRIPT CARD (shown after each recording completes) -->
+            <div class="session-transcript-card" id="session-transcript-card">
+                <div class="stc-header">
+                    <div class="stc-label">
+                        <div class="stc-label-dot"></div>
+                        What You Said
+                    </div>
+                    <div class="stc-session-badge" id="stc-session-badge">Session 1</div>
+                </div>
+                <div class="stc-text" id="stc-text">-</div>
+                <div class="stc-word-count" id="stc-word-count">
+                    <span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span id="stc-words">0 words</span>
+                    </span>
+                    <span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        30 sec recorded
+                    </span>
+                </div>
+            </div>
+
+            <div class="baseline-established" id="baseline-established">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Baseline Established - Analyzing cognitive markers...
+            </div>
+            <div class="status-banner" id="status-banner"></div>
+        </div>
+        <!-- ALL TRANSCRIPTS SUMMARY -->
+        <div id="all-transcripts" style="display:none; max-width:620px; margin: 24px auto 0;">
+            <div class="transcript-box" style="min-height:auto;">
+                <div class="transcript-label">All Session Transcripts</div>
+                <div id="all-transcripts-content"></div>
+            </div>
+        </div>
+    </section>
+</div>

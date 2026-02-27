@@ -1,0 +1,22 @@
+{
+  "name": "hackathon-backend",
+  "version": "1.0.0",
+  "description": "Backend for hackathon frontend — Whisper transcription + AI analysis via Hugging Face Inference API",
+  "main": "services/node/server.js",
+  "scripts": {
+    "start": "node services/node/server.js",
+    "dev": "nodemon services/node/server.js",
+    "demo": "start \"\" http://localhost:3000/ && node services/node/server.js",
+    "test:node": "node tests/node/test_request.js"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.1.4",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

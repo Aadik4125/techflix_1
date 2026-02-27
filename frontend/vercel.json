@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/transcribe", "destination": "https://cognivara-node.onrender.com/transcribe" },
+    { "source": "/analyze", "destination": "https://cognivara-node.onrender.com/analyze" },
+    { "source": "/api/:path*", "destination": "https://cognivara-backend.onrender.com/api/:path*" }
+  ]
+}

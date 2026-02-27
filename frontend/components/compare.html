@@ -1,0 +1,118 @@
+<!-- ══════════ COMPARE PAGE ══════════ -->
+<div id="compare-page" style="display:none;">
+    <div class="compare-page-inner">
+        <div class="compare-header">
+            <div class="section-eyebrow">Side-by-Side Analysis</div>
+            <h2 class="compare-title">Your Analysis vs Reference Patients</h2>
+            <p class="compare-sub">Compare your recorded cognitive biomarkers against clinical reference profiles to
+                understand your relative position.</p>
+        </div>
+
+        <!-- PATIENT TABS -->
+        <div class="patient-tabs">
+            <button class="patient-tab active-a" id="ctab-A" onclick="selectComparePatient('A')">
+                <div style="width:10px;height:10px;border-radius:50%;background:#10b981;"></div>
+                Patient A — Stable
+            </button>
+            <button class="patient-tab" id="ctab-B" onclick="selectComparePatient('B')">
+                <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>
+                Patient B — Worsening
+            </button>
+            <button class="patient-tab" id="ctab-C" onclick="selectComparePatient('C')">
+                <div style="width:10px;height:10px;border-radius:50%;background:#1a6eb5;"></div>
+                Patient C — Recovery
+            </button>
+        </div>
+
+        <!-- DELTA SUMMARY CARDS -->
+        <div class="compare-delta-row">
+            <div class="compare-delta-card">
+                <div class="compare-delta-label">Your Risk Score</div>
+                <div class="compare-delta-val" id="cd-user-score" style="color:var(--blue);">—</div>
+                <div class="compare-delta-note">out of 100</div>
+            </div>
+            <div class="compare-delta-card">
+                <div class="compare-delta-label">Reference Score</div>
+                <div class="compare-delta-val" id="cd-ref-score" style="color:#10b981;">—</div>
+                <div class="compare-delta-note" id="cd-ref-name">Patient A</div>
+            </div>
+            <div class="compare-delta-card">
+                <div class="compare-delta-label">Delta</div>
+                <div class="compare-delta-val" id="cd-delta" style="color:#f59e0b;">—</div>
+                <div class="compare-delta-note" id="cd-delta-note">Difference</div>
+            </div>
+        </div>
+
+        <!-- SIDE BY SIDE SCORES -->
+        <div class="compare-columns" id="compare-columns">
+            <!-- left: user -->
+            <div>
+                <div class="compare-col-header user-col">
+                    <h3 id="compare-user-name">You</h3>
+                    <p>Live Recording Analysis</p>
+                    <div class="compare-score-big" id="compare-user-score-big" style="color:var(--blue);">—</div>
+                    <span class="risk-status-badge" id="compare-user-badge"
+                        style="margin-top:4px;display:inline-flex;">—</span>
+                </div>
+                <div class="compare-metrics" id="compare-user-metrics"></div>
+            </div>
+            <!-- right: reference patient -->
+            <div>
+                <div class="compare-col-header ref-col" id="compare-ref-header">
+                    <h3 id="compare-ref-name">Patient A</h3>
+                    <p id="compare-ref-type">Reference Profile · Stable</p>
+                    <div class="compare-score-big" id="compare-ref-score-big" style="color:#10b981;">—</div>
+                    <span class="risk-status-badge" id="compare-ref-badge"
+                        style="margin-top:4px;display:inline-flex;">—</span>
+                </div>
+                <div class="compare-metrics" id="compare-ref-metrics"></div>
+            </div>
+        </div>
+
+        <!-- TRANSCRIPT COMPARISON -->
+        <div class="compare-transcript">
+            <h4>📝 Your Session Transcripts vs Reference Profile</h4>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div>
+                    <div
+                        style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;">
+                        Your Recordings</div>
+                    <div class="transcript-compare-box" id="compare-user-transcript">No transcript available yet.
+                        Complete at least one recording first.</div>
+                </div>
+                <div>
+                    <div
+                        style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">
+                        Reference Notes</div>
+                    <div class="transcript-compare-box" id="compare-ref-transcript">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI COMPARE INSIGHT -->
+        <div class="compare-insight">
+            <div class="insight-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+            </div>
+            <div style="flex:1;">
+                <div class="insight-label">AI Comparative Interpretation</div>
+                <p class="insight-text" id="compare-insight-text">Select a reference patient above to see your
+                    comparative analysis.</p>
+                <div class="insight-footer">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span id="compare-insight-meta">Not a clinical diagnosis · For investigational use only</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:center; margin-top:16px;">
+            <button class="btn-secondary" onclick="goBack()">← Back to Dashboard</button>
+        </div>
+    </div>
+</div>

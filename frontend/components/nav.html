@@ -1,0 +1,68 @@
+<!-- NAV -->
+<nav>
+    <div class="nav-logo" onclick="goHome()">
+        <div class="nav-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path
+                    d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" />
+                <path
+                    d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" />
+            </svg>
+        </div>
+        NeuroSync
+    </div>
+    <div class="nav-links">
+        <a href="#" onclick="goHome();return false;" id="nav-home" class="active">Home</a>
+        <a href="#" onclick="scrollToRecord();return false;" id="nav-record">Record</a>
+        <a href="#" onclick="showDashboardNav();return false;" id="nav-dash">Dashboard</a>
+    </div>
+    <div class="user-area">
+        <div class="mode-pill checking" id="mode-pill">Checking mode</div>
+        <button id="login-btn" class="user-button" onclick="showLogin()">Login</button>
+        <div id="profile-btn" class="user-avatar" style="display:none;" onclick="toggleProfile()"></div>
+        <div id="profile-dropdown" class="profile-dropdown">
+            <div class="profile-menu">
+                <button class="menu-btn menu-profile" onclick="showProfilePage()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+                    </svg>
+                    View Profile
+                </button>
+                <button class="menu-btn menu-compare" onclick="showComparePage()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <polyline points="5 12 12 19 19 12" />
+                    </svg>
+                    Compare Analysis
+                </button>
+                <button class="menu-btn menu-settings" onclick="showSettingsPage()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24M1 12h6m6 0h6m-16.78 7.78l4.24-4.24m2.12-2.12l4.24-4.24" />
+                    </svg>
+                    Account Settings
+                </button>
+                <button class="menu-btn menu-logout" onclick="logout()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- COMPARE FLOAT BUTTON (shown after analysis) -->
+<button class="compare-float-btn" id="compare-float-btn" onclick="showComparePage()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+    Compare Analysis
+</button>

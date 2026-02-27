@@ -1,0 +1,192 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 3033 >>
+stream
+BT
+/F1 10 Tf
+50 760 Td
+(NeuroSync + CogniVara - Full Project Stack and Architecture Report) Tj
+0 -14 Td
+(Generated on: 2026-02-27 17:04:11) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(PROJECT OVERVIEW) Tj
+0 -14 Td
+(This project combines a browser frontend, a Node.js inference helper backend,) Tj
+0 -14 Td
+(and a Python FastAPI analytics backend for cognitive speech-risk tracking.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(PRIMARY TECHNOLOGIES) Tj
+0 -14 Td
+(1\) Frontend: HTML + CSS + Vanilla JavaScript \(components, API integration, recording UI\).) Tj
+0 -14 Td
+(2\) Node Backend: Express, Axios, Multer, CORS, Dotenv for HF transcription/analysis APIs.) Tj
+0 -14 Td
+(3\) Python Backend: FastAPI, SQLAlchemy, Librosa, NumPy, SciPy, NLTK for signal + NLP pipeline.) Tj
+0 -14 Td
+(4\) Storage: SQLite database + filesystem audio uploads.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(FRONTEND DETAILS \(where used\)) Tj
+0 -14 Td
+(- index.html: shell and component slots.) Tj
+0 -14 Td
+(- components/*.html: nav, login modal, recording, dashboard, profile, settings, compare.) Tj
+0 -14 Td
+(- scripts/app.js: auth state, account sync, recording orchestration, dashboard hydration.) Tj
+0 -14 Td
+(- scripts/api.js: clients for Node and FastAPI endpoints.) Tj
+0 -14 Td
+(- scripts/recording.js: microphone capture, WAV conversion, speech-recognition helpers.) Tj
+0 -14 Td
+(- scripts/ui.js: rendering graphs/cards/status and compare views.) Tj
+0 -14 Td
+(- styles/main.css: full responsive UI styles.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(NODE BACKEND DETAILS \(server.js + hf.service.js\)) Tj
+0 -14 Td
+(- server.js endpoints:) Tj
+0 -14 Td
+(  GET /health) Tj
+0 -14 Td
+(  GET /debug/whisper) Tj
+0 -14 Td
+(  POST /transcribe) Tj
+0 -14 Td
+(  POST /analyze) Tj
+0 -14 Td
+(- hf.service.js:) Tj
+0 -14 Td
+(  wraps Hugging Face Router model calls, retry logic, output normalization, and heuristic fallback.) Tj
+0 -14 Td
+(- package.json dependencies: express, cors, multer, axios, dotenv.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(PYTHON BACKEND DETAILS \(backend/*\)) Tj
+0 -14 Td
+(- main.py: app bootstrap, CORS middleware, startup table creation, NLTK preload.) Tj
+0 -14 Td
+(- config.py: DATABASE_URL, FASTAPI_PORT, CORS_ORIGINS, analysis thresholds, upload path.) Tj
+0 -14 Td
+(- database.py: SQLAlchemy engine/session + create_tables + SQLite compatibility migrations.) Tj
+0 -14 Td
+(- models/user.py: user profile + user-level score fields \(latest_csi_score, total_sessions, last_session_at\).) Tj
+0 -14 Td
+(- models/session.py: session transcript/features/z-scores/drift/csi and raw audio path.) Tj
+0 -14 Td
+(- models/baseline.py: baseline means/stds per user.) Tj
+0 -14 Td
+(- routes/audio.py: POST /api/user and POST /api/upload full pipeline.) Tj
+0 -14 Td
+(- routes/analysis.py: POST /api/analyze, GET /api/sessions/{user_id}.) Tj
+0 -14 Td
+(- routes/dashboard.py: GET /api/dashboard/{user_id}, GET /api/baseline/{user_id}.) Tj
+0 -14 Td
+(- services/*.py: preprocessing, acoustic, temporal, linguistic, baseline, drift, csi.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(FASTAPI ROUTES IN USE) Tj
+0 -14 Td
+(- GET  /api/health) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1309 >>
+stream
+BT
+/F1 10 Tf
+50 760 Td
+(- POST /api/user) Tj
+0 -14 Td
+(- POST /api/upload) Tj
+0 -14 Td
+(- POST /api/analyze) Tj
+0 -14 Td
+(- GET  /api/sessions/{user_id}) Tj
+0 -14 Td
+(- GET  /api/dashboard/{user_id}) Tj
+0 -14 Td
+(- GET  /api/baseline/{user_id}) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(DATA FLOW) Tj
+0 -14 Td
+(1\) User creates/signs in account from login modal.) Tj
+0 -14 Td
+(2\) Frontend calls /api/user and stores backend user_id.) Tj
+0 -14 Td
+(3\) Recording is captured and converted to WAV in browser.) Tj
+0 -14 Td
+(4\) Frontend sends WAV + transcript + user_id to /api/upload.) Tj
+0 -14 Td
+(5\) Backend stores audio, computes features/baseline/drift/CSI, stores session row.) Tj
+0 -14 Td
+(6\) User-level latest score/session metadata is updated in users table.) Tj
+0 -14 Td
+(7\) Frontend fetches /api/dashboard/{user_id} for persisted score/trend rendering.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(STORAGE LOCATIONS) Tj
+0 -14 Td
+(- SQLite DB file: backend/cognivara.db) Tj
+0 -14 Td
+(- Uploaded audio files: backend/uploads/) Tj
+0 -14 Td
+(- Local browser account cache: localStorage key neurosync_user \(contains user_id\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(RUNTIME PORTS) Tj
+0 -14 Td
+(- Frontend/Node app: http://127.0.0.1:3000) Tj
+0 -14 Td
+(- FastAPI backend:   http://127.0.0.1:8000) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(END OF REPORT) Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000003408 00000 n 
+0000003534 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+4895
+%%EOF

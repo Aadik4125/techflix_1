@@ -1,0 +1,4394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COGNIVARA – AI Cognitive Risk Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090e17;
+      --surface: rgba(18, 28, 45, 0.65);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-soft: rgba(255, 255, 255, 0.05);
+      --navy: #ffffff;
+      --navy-mid: #94a3b8;
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --teal: #14f1d9;
+      --blue: #3b82f6;
+      --risk-low: #10b981;
+      --risk-moderate: #f59e0b;
+      --risk-high: #ef4444;
+      --radius-md: 16px;
+      --radius-lg: 22px;
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .profile-dropdown,
+    .modal-content,
+    .recording-section,
+    .dashboard-grid>div,
+    .graph-card,
+    .index-card,
+    .compare-col-header,
+    .compare-metric-row,
+    .compare-delta-card,
+    .compare-transcript,
+    .profile-page-card,
+    .settings-card,
+    .patient-tab,
+    .insight-card {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(9, 14, 23, 0.75);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 52px;
+      height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--navy);
+      letter-spacing: -0.3px;
+      cursor: pointer;
+    }
+
+    .nav-logo-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-logo-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .backend-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.55);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .backend-status:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .backend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      flex-shrink: 0;
+    }
+
+    .backend-status.checking {
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fcd34d;
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    .backend-status.checking .backend-dot {
+      background: #f59e0b;
+      box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.15);
+    }
+
+    .backend-status.online {
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #86efac;
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .backend-status.online .backend-dot {
+      background: #10b981;
+      box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.15);
+    }
+
+    .backend-status.offline {
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .backend-status.offline .backend-dot {
+      background: #ef4444;
+      box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.15);
+    }
+
+    .user-button {
+      background: transparent;
+      border: 1.5px solid var(--blue);
+      color: var(--blue);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .user-avatar:hover {
+      box-shadow: 0 4px 12px rgba(26, 110, 181, 0.3);
+    }
+
+    .user-button:hover {
+      background: rgba(26, 110, 181, 0.1);
+    }
+
+    .profile-dropdown {
+      position: absolute;
+      top: 66px;
+      right: 52px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      padding: 8px;
+      display: none;
+      min-width: 200px;
+      z-index: 999;
+    }
+
+    .profile-dropdown.show {
+      display: block;
+    }
+
+    .profile-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .menu-btn:hover {
+      background: var(--border-soft);
+    }
+
+    .menu-profile {
+      color: var(--blue);
+    }
+
+    .menu-profile:hover {
+      background: rgba(26, 110, 181, 0.1);
+    }
+
+    .menu-compare {
+      color: var(--teal);
+    }
+
+    .menu-compare:hover {
+      background: rgba(24, 176, 158, 0.1);
+    }
+
+    .menu-settings {
+      color: var(--navy);
+    }
+
+    .menu-settings:hover {
+      background: rgba(15, 33, 55, 0.1);
+    }
+
+    .menu-logout {
+      color: #ef4444;
+    }
+
+    .menu-logout:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .menu-btn svg {
+      flex-shrink: 0;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 14, 23, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      padding: 32px 36px;
+      border-radius: 16px;
+      width: 360px;
+      max-width: 90%;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: var(--navy);
+    }
+
+    .modal-header {
+      margin-bottom: 16px;
+    }
+
+    .modal-content label {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      margin-top: 4px;
+    }
+
+    .modal-content input:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    .modal-content button {
+      margin-top: 10px;
+      margin-right: 8px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--navy);
+      background: rgba(15, 33, 55, 0.05);
+    }
+
+    .nav-links a.active {
+      color: var(--blue);
+      background: rgba(26, 110, 181, 0.09);
+    }
+
+    /* ── COMPARE FLOAT BUTTON ── */
+    .compare-float-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 101;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 8px 28px rgba(26, 110, 181, 0.45);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: bounceIn 0.5s ease;
+    }
+
+    .compare-float-btn.show {
+      display: flex;
+    }
+
+    .compare-float-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 36px rgba(26, 110, 181, 0.55);
+    }
+
+    @keyframes bounceIn {
+      0% {
+        transform: translateY(20px);
+        opacity: 0
+      }
+
+      70% {
+        transform: translateY(-4px)
+      }
+
+      100% {
+        transform: translateY(0);
+        opacity: 1
+      }
+    }
+
+    /* ── REDO BUTTON ── */
+    .redo-recording-btn {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 9px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 4px 16px rgba(26, 110, 181, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+      margin: 0 auto 20px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .redo-recording-btn.show {
+      display: flex;
+    }
+
+    .redo-recording-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(26, 110, 181, 0.45);
+    }
+
+    .redo-recording-btn svg {
+      flex-shrink: 0;
+    }
+
+    /* ── POST-RECORDING TRANSCRIPT CARD ── */
+    .session-transcript-card {
+      display: none;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-top: 20px;
+      text-align: left;
+      animation: fadeUp 0.5s ease both;
+      box-shadow: var(--shadow-md);
+    }
+
+    .session-transcript-card.show {
+      display: block;
+    }
+
+    .stc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .stc-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stc-label-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .stc-session-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      border-radius: 100px;
+      padding: 3px 10px;
+    }
+
+    .stc-text {
+      font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.6;
+      font-style: normal;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 3px solid var(--teal);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-top: 10px;
+    }
+
+    .stc-word-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      display: flex;
+      gap: 14px;
+    }
+
+    .stc-word-count span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── TRANSCRIPT PANEL ── */
+    .transcript-box {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 18px;
+      text-align: left;
+      min-height: 60px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .transcript-box .transcript-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 6px;
+    }
+
+    .transcript-text {
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    .transcript-text.has-text {
+      color: var(--text-primary);
+      font-style: normal;
+    }
+
+    .transcript-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 13px;
+      background: var(--blue);
+      margin-left: 2px;
+      animation: blink 0.8s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    .transcript-session-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--teal);
+      margin-top: 8px;
+      margin-bottom: 2px;
+    }
+
+    .transcript-session-header:first-child {
+      margin-top: 0;
+    }
+
+    /* ── LAYOUT ── */
+    section {
+      padding: 96px 52px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding-top: 140px;
+      padding-bottom: 80px;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(26, 110, 181, 0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(26, 110, 181, 0.08);
+      border: 1px solid rgba(26, 110, 181, 0.2);
+      border-radius: 100px;
+      padding: 7px 18px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-bottom: 44px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 3px rgba(24, 176, 158, 0.2);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.35
+      }
+    }
+
+    .hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(52px, 7.5vw, 92px);
+      font-weight: 800;
+      line-height: 1.04;
+      letter-spacing: -2.5px;
+      color: var(--navy);
+      max-width: 820px;
+      margin: 0 auto 28px;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+
+    .gradient-text {
+      background: linear-gradient(90deg, #1a6eb5 0%, #18b09e 55%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto 52px;
+      font-weight: 400;
+      line-height: 1.75;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+
+    .hero-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 8px 28px rgba(26, 110, 181, 0.35);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px rgba(26, 110, 181, 0.45);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 15px 28px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--blue);
+      box-shadow: var(--shadow-md);
+    }
+
+    .hero-stats {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 64px auto 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 28px 48px;
+      max-width: 640px;
+      box-shadow: var(--shadow-sm);
+      animation: fadeUp 0.7s 0.4s ease both;
+    }
+
+    .hero-stat {
+      text-align: center;
+      flex: 1;
+    }
+
+    .hero-stat-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--navy);
+    }
+
+    .hero-stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .hero-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(18px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .section-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .section-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+    }
+
+    /* ── RECORDING ── */
+    .recording-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 60px 52px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      max-width: 620px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .recording-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #1a6eb5, #18b09e);
+    }
+
+    .record-button-wrap {
+      position: relative;
+      width: 148px;
+      height: 148px;
+      margin: 0 auto 36px;
+    }
+
+    .record-ring {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: all 0.4s;
+    }
+
+    .record-ring.active {
+      border-color: rgba(26, 110, 181, 0.3);
+      animation: ripple 1.6s ease-out infinite;
+    }
+
+    .record-ring2 {
+      position: absolute;
+      inset: -22px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+    }
+
+    .record-ring2.active {
+      border-color: rgba(24, 176, 158, 0.2);
+      animation: ripple 1.6s 0.4s ease-out infinite;
+    }
+
+    @keyframes ripple {
+      0% {
+        transform: scale(1);
+        opacity: 1
+      }
+
+      100% {
+        transform: scale(1.2);
+        opacity: 0
+      }
+    }
+
+    .record-button {
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      z-index: 1;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .record-button:hover {
+      border-color: var(--blue);
+      box-shadow: 0 8px 32px rgba(26, 110, 181, 0.22);
+    }
+
+    .record-button.recording {
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      border-color: transparent;
+      box-shadow: 0 8px 40px rgba(26, 110, 181, 0.4);
+    }
+
+    .record-button.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .record-icon-idle {
+      color: var(--blue);
+    }
+
+    .record-icon-active {
+      color: #fff;
+      display: none;
+    }
+
+    .record-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .record-label.on {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .timer {
+      font-family: 'Outfit', sans-serif;
+      font-size: 54px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      color: var(--navy);
+      margin-bottom: 10px;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s;
+    }
+
+    .timer.active {
+      color: var(--blue);
+    }
+
+    .timer-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .progress-bar-wrap {
+      background: var(--bg);
+      border-radius: 100px;
+      height: 5px;
+      margin-bottom: 40px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, #1a6eb5, #18b09e);
+      transition: width 1s linear;
+    }
+
+    .baseline-steps {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .baseline-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+
+    .baseline-step.completed {
+      background: #ecfdf5;
+      border-color: #6ee7b7;
+      color: #065f46;
+    }
+
+    .baseline-step.active {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+
+    .baseline-step.completed .step-dot {
+      opacity: 1;
+    }
+
+    .baseline-step.active .step-dot {
+      opacity: 1;
+      animation: pulse 1.2s infinite;
+    }
+
+    .baseline-established {
+      display: none;
+      margin-top: 24px;
+      background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+      border: 1px solid #6ee7b7;
+      border-radius: 12px;
+      padding: 16px 24px;
+      color: #065f46;
+      font-weight: 600;
+      font-size: 15px;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .baseline-established.show {
+      display: flex;
+    }
+
+    /* ── DASHBOARD GRID ── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .risk-score-card {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 44px 52px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .risk-score-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--risk-accent, linear-gradient(90deg, #f59e0b, #ef4444));
+    }
+
+    .risk-score-card::after {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .score-gauge {
+      position: relative;
+      flex-shrink: 0;
+      width: 180px;
+      height: 180px;
+    }
+
+    .score-gauge svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: var(--bg);
+      stroke-width: 14;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke-width: 14;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .gauge-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-score {
+      font-family: 'Outfit', sans-serif;
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .gauge-denom {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .risk-info {
+      flex: 1;
+    }
+
+    .risk-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 100px;
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .risk-status-badge.moderate {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .risk-status-badge.low {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+
+    .risk-status-badge.high {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .risk-info h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .risk-info p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .risk-csi {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(20, 241, 217, 0.35);
+      background: rgba(20, 241, 217, 0.08);
+      color: #bffcf4;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .risk-csi strong {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      color: var(--teal);
+      line-height: 1;
+    }
+
+    .risk-delta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 100px;
+    }
+
+    .waveform-card {
+      grid-column: 1/-1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 30px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .waveform-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+
+    .waveform-header h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .waveform-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .waveform-legend {
+      display: flex;
+      gap: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .waveform-container {
+      position: relative;
+      height: 100px;
+      margin-bottom: 10px;
+    }
+
+    .waveform-svg {
+      width: 100%;
+      height: 80px;
+    }
+
+    .waveform-timeline {
+      display: flex;
+      position: relative;
+      border-top: 1px solid var(--border-soft);
+      padding-top: 10px;
+      height: 26px;
+    }
+
+    .timeline-tick {
+      position: absolute;
+      transform: translateX(-50%);
+    }
+
+    .tick-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .marker-container {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 80px;
+    }
+
+    .marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .marker-line {
+      width: 1px;
+      flex: 1;
+      background: repeating-linear-gradient(to bottom, #1a6eb5 0, #1a6eb5 4px, transparent 4px, transparent 8px);
+      opacity: 0.35;
+    }
+
+    .marker-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+      flex-shrink: 0;
+      margin-top: -5px;
+      transition: transform 0.2s;
+    }
+
+    .marker-tooltip {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--navy);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 7px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 10;
+    }
+
+    .marker-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: var(--navy);
+    }
+
+    .marker:hover .marker-tooltip {
+      opacity: 1;
+    }
+
+    .marker:hover .marker-dot {
+      transform: scale(1.3);
+    }
+
+    .graphs-section {
+      grid-column: 1/-1;
+    }
+
+    .graphs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .graphs-grid-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .graph-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+      --graph-accent: #1a6eb5;
+      --graph-accent-soft: #60a5fa;
+    }
+
+    .graph-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: linear-gradient(90deg, var(--graph-accent), var(--graph-accent-soft));
+    }
+
+    .graph-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .graph-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+
+    .graph-card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .graph-card-current {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .graph-svg {
+      width: 100%;
+      height: 90px;
+    }
+
+    .insight-card {
+      background: linear-gradient(135deg, #edf4ff 0%, #e8f8f6 100%);
+      border: 1px solid rgba(26, 110, 181, 0.15);
+      border-radius: var(--radius-md);
+      padding: 28px 32px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .insight-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(26, 110, 181, 0.3);
+    }
+
+    .insight-icon svg {
+      width: 22px;
+      height: 22px;
+      color: #fff;
+    }
+
+    .insight-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 7px;
+    }
+
+    .insight-text {
+      font-size: 14px;
+      color: var(--navy);
+      line-height: 1.7;
+    }
+
+    .insight-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .indices-grid {
+      grid-column: 1/-1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .index-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+
+    .index-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .index-card-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    /* Info icon */
+    .info-icon-wrap {
+      position: relative;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .info-icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      border-radius: 50%;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .info-icon-btn:hover {
+      color: var(--blue);
+      background: rgba(26, 110, 181, 0.08);
+    }
+
+    .info-tooltip {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: rgba(9, 14, 23, 0.98);
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      width: 240px;
+      z-index: 50;
+      box-shadow: 0 8px 32px rgba(15, 33, 55, 0.22);
+      animation: fadeUp 0.2s ease both;
+    }
+
+    .info-tooltip.show {
+      display: block;
+    }
+
+    .info-tooltip::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      right: 10px;
+      border: 6px solid transparent;
+      border-bottom-color: rgba(9, 14, 23, 0.98);
+    }
+
+    .info-tooltip-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 7px;
+      letter-spacing: 0.3px;
+    }
+
+    .info-tooltip p {
+      font-size: 12px;
+      line-height: 1.65;
+      color: rgba(248, 250, 252, 0.92);
+    }
+
+    /* Re-record button */
+    .rerecord-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: 1.5px solid var(--blue);
+      color: var(--blue);
+      border-radius: 10px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      margin-top: 8px;
+    }
+
+    .rerecord-btn:hover {
+      background: rgba(26, 110, 181, 0.07);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(26, 110, 181, 0.18);
+    }
+
+    .index-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 44px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .index-bar-wrap {
+      background: var(--bg);
+      border-radius: 100px;
+      height: 4px;
+      margin-bottom: 8px;
+    }
+
+    .index-bar {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 1s ease;
+    }
+
+    .index-range {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── COMPARE PAGE ── */
+    #compare-page {
+      display: none;
+    }
+
+    #compare-page.show {
+      display: block;
+    }
+
+    .compare-page-inner {
+      padding-top: 96px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-left: 52px;
+      padding-right: 52px;
+      padding-bottom: 80px;
+    }
+
+    .compare-header {
+      margin-bottom: 40px;
+    }
+
+    .compare-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .compare-sub {
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+
+    .patient-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+
+    .patient-tab {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .patient-tab:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--text-primary);
+    }
+
+    .patient-tab.active-a {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    .patient-tab.active-b {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+    }
+
+    .patient-tab.active-c {
+      border-color: #1a6eb5;
+      background: rgba(26, 110, 181, 0.2);
+      color: #93c5fd;
+    }
+
+    /* Side by side comparison */
+    .compare-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .compare-col-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .compare-col-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .compare-col-header.user-col::before {
+      background: linear-gradient(90deg, #1a6eb5, #18b09e);
+    }
+
+    .compare-col-header.ref-col::before {
+      background: var(--ref-col-color, #10b981);
+    }
+
+    .compare-col-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+
+    .compare-col-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .compare-score-big {
+      font-family: 'Outfit', sans-serif;
+      font-size: 52px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      margin: 12px 0 4px;
+    }
+
+    /* Compare metric rows */
+    .compare-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .compare-metric-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 22px;
+    }
+
+    .compare-metric-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .compare-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .compare-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .compare-bar-label {
+      width: 80px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+
+    .compare-bar-track {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 100px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .compare-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 1s ease;
+    }
+
+    .compare-bar-val {
+      width: 40px;
+      text-align: right;
+      font-weight: 700;
+      color: var(--navy);
+      font-size: 12px;
+    }
+
+    /* Delta summary */
+    .compare-delta-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .compare-delta-card {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .compare-delta-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .compare-delta-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: var(--text-primary);
+    }
+
+    .compare-delta-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* AI compare insight */
+    .compare-insight {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      padding: 24px 28px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 32px;
+      color: var(--text-primary);
+    }
+
+    /* Transcript compare */
+    .compare-transcript {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .compare-transcript h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+
+    .transcript-compare-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .transcript-compare-box strong {
+      color: var(--text-primary);
+    }
+
+    /* User profile badge in dashboard */
+    .user-profile-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      background: linear-gradient(135deg, rgba(26, 110, 181, 0.1), rgba(24, 176, 158, 0.1));
+      border: 1px solid rgba(26, 110, 181, 0.2);
+      color: var(--blue);
+      margin-bottom: 14px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 52px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--navy);
+    }
+
+    .footer-brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-brand-icon svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Pages */
+    #hero-section {
+      display: block;
+    }
+
+    #recording-section {
+      display: block;
+    }
+
+    #dashboard {
+      display: none;
+    }
+
+    #profile-page {
+      display: none;
+    }
+
+    #settings-page {
+      display: none;
+    }
+
+    #dashboard.show {
+      display: block;
+    }
+
+    #profile-page.show {
+      display: block;
+    }
+
+    #settings-page.show {
+      display: block;
+    }
+
+    .profile-page-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      max-width: 400px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-md);
+    }
+
+    .profile-avatar-large {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a6eb5, #18b09e);
+      color: #fff;
+      font-size: 32px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      max-width: 500px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-md);
+    }
+
+    .settings-section label {
+      display: block;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .settings-section input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media(max-width:900px) {
+      nav {
+        padding: 0 20px;
+      }
+
+      section {
+        padding: 64px 20px;
+      }
+
+      .dashboard-grid,
+      .graphs-grid,
+      .graphs-grid-bottom,
+      .indices-grid,
+      .compare-columns,
+      .compare-delta-row {
+        grid-template-columns: 1fr;
+      }
+
+      .risk-score-card {
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .hero h1 {
+        font-size: 46px;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .hero-stats {
+        padding: 24px 20px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .backend-status {
+        padding: 6px;
+      }
+
+      .backend-status-text {
+        display: none;
+      }
+
+      .compare-page-inner {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo" onclick="goHome()">
+      <div class="nav-logo-icon">
+        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="url(#brain-grad-logo)"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="brain-grad-logo" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#14f1d9" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+          </defs>
+          <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+          <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+          <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
+          <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path>
+          <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path>
+          <path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path>
+          <path d="M19.938 10.5a4 4 0 0 1 .585.396"></path>
+          <path d="M6 18a4 4 0 0 1-1.967-.516"></path>
+          <path d="M19.967 17.484A4 4 0 0 1 18 18"></path>
+        </svg>
+      </div>
+      COGNIVARA
+    </div>
+    <div class="nav-links">
+      <a href="#" onclick="goHome();return false;" id="nav-home" class="active">Home</a>
+      <a href="#" onclick="scrollToRecord();return false;" id="nav-record">Record</a>
+      <a href="#" onclick="showDashboardNav();return false;" id="nav-dash">Dashboard</a>
+    </div>
+    <div class="user-area">
+      <button id="login-btn" class="user-button" onclick="showLogin()">Login</button>
+      <div id="profile-btn" class="user-avatar" style="display:none;" onclick="toggleProfile()"></div>
+      <div id="profile-dropdown" class="profile-dropdown">
+        <div class="profile-menu">
+          <button class="menu-btn menu-profile" onclick="showProfilePage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            </svg>
+            View Profile
+          </button>
+          <button class="menu-btn menu-compare" onclick="showComparePage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <polyline points="5 12 12 19 19 12" />
+            </svg>
+            Compare Analysis
+          </button>
+          <button class="menu-btn menu-settings" onclick="showSettingsPage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.12 2.12l4.24 4.24M1 12h6m6 0h6m-16.78 7.78l4.24-4.24m2.12-2.12l4.24-4.24" />
+            </svg>
+            Account Settings
+          </button>
+          <button class="menu-btn menu-logout" onclick="logout()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- COMPARE FLOAT BUTTON (shown after analysis) -->
+  <button class="compare-float-btn" id="compare-float-btn" onclick="showComparePage()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+    Compare Analysis
+  </button>
+
+  <!-- LOGIN MODAL -->
+  <div id="login-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M4 21v-2a4 4 0 0 1 3-3.87" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </div>
+      <h2>Create Account</h2>
+      <form id="login-form" onsubmit="submitSignup(event)">
+        <label>Name<input type="text" id="input-name" required placeholder="Your full name"></label>
+        <label>Email<input type="email" id="input-email" required placeholder="you@example.com"></label>
+        <label>Password<input type="password" id="input-password" required placeholder="Create a password"></label>
+        <div style="display:flex; gap:10px;">
+          <label style="flex:1;">Age<input type="number" id="input-age" min="0" required placeholder="e.g. 34"></label>
+          <label style="flex:1;">Gender
+            <select id="input-gender"
+              style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; margin-top:4px;"
+              required>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary" style="padding:10px 20px;font-size:14px;">Save &amp;
+            Continue</button>
+          <button type="button" class="btn-secondary" style="padding:10px 20px;font-size:14px;"
+            onclick="hideLogin()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════ HERO ══════════ -->
+  <div id="hero-section">
+    <section class="hero" id="hero">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Clinical-Grade Voice Analysis
+      </div>
+      <h1>Monitor Your<br><span class="gradient-text">Cognitive Health</span><br>Through Voice</h1>
+      <p>COGNIVARA analyzes speech biomarkers to detect subtle cognitive strain patterns up to 6 months before visible
+        symptoms appear.</p>
+      <div class="hero-buttons">
+        <a href="#" class="btn-primary" onclick="scrollToRecord();return false;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+          Start 30-Second Recording
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">94.2%</div>
+          <div class="hero-stat-label">Detection Accuracy</div>
+        </div>
+        <div class="hero-divider"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">30s</div>
+          <div class="hero-stat-label">Analysis Time</div>
+        </div>
+        <div class="hero-divider"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">6mo</div>
+          <div class="hero-stat-label">Early Detection</div>
+        </div>
+        <div class="hero-divider"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">2,400+</div>
+          <div class="hero-stat-label">Study Participants</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ══════════ RECORDING ══════════ -->
+  <div id="recording-section">
+    <section id="recording" style="padding-top:0;">
+      <div style="text-align:center;margin-bottom:48px;" class="reveal">
+        <div class="section-eyebrow">Voice Analysis</div>
+        <h2 class="section-title">Establish Your Baseline</h2>
+        <p class="section-sub">Complete 3 short recordings to calibrate your personal cognitive baseline.</p>
+      </div>
+      <div class="recording-section reveal">
+
+        <!-- REDO BUTTON (shown above mic after a session completes) -->
+        <button class="redo-recording-btn" id="redo-btn" onclick="redoLastRecording()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 .49-4" />
+          </svg>
+          Redo Last Recording
+        </button>
+
+        <div class="record-button-wrap">
+          <div class="record-ring" id="record-ring"></div>
+          <div class="record-ring2" id="record-ring2"></div>
+          <button class="record-button disabled" id="record-btn" onclick="toggleRecord()" disabled>
+            <svg id="mic-idle" class="record-icon-idle" width="42" height="42" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+            <svg id="mic-active" class="record-icon-active" width="34" height="34" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+            <span class="record-label" id="record-label">Tap to Record</span>
+          </button>
+        </div>
+        <div class="timer" id="timer">0:30</div>
+        <div class="timer-label" id="timer-label">Speak naturally — describe your day</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progress-bar" style="width:0%;"></div>
+        </div>
+        <div class="baseline-steps">
+          <div class="baseline-step active" id="step-1">
+            <div class="step-dot"></div>Recording 1 of 3
+          </div>
+          <div class="baseline-step" id="step-2">
+            <div class="step-dot"></div>Recording 2 of 3
+          </div>
+          <div class="baseline-step" id="step-3">
+            <div class="step-dot"></div>Recording 3 of 3
+          </div>
+        </div>
+
+        <!-- LIVE TRANSCRIPT BOX (while recording) -->
+        <div class="transcript-box" id="transcript-box" style="display:none;">
+          <div class="transcript-label">Live Transcript</div>
+          <div class="transcript-text" id="transcript-text">Waiting for speech…</div>
+        </div>
+
+        <!-- SESSION TRANSCRIPT CARD (shown after each recording completes) -->
+        <div class="session-transcript-card" id="session-transcript-card">
+          <div class="stc-header">
+            <div class="stc-label">
+              <div class="stc-label-dot"></div>
+              What You Said
+            </div>
+            <div class="stc-session-badge" id="stc-session-badge">Session 1</div>
+          </div>
+          <div class="stc-text" id="stc-text">—</div>
+          <div class="stc-word-count" id="stc-word-count">
+            <span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <span id="stc-words">0 words</span>
+            </span>
+            <span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              30 sec recorded
+            </span>
+          </div>
+        </div>
+
+        <div class="baseline-established" id="baseline-established">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Baseline Established — Analyzing cognitive markers…
+        </div>
+      </div>
+      <!-- ALL TRANSCRIPTS SUMMARY -->
+      <div id="all-transcripts" style="display:none; max-width:620px; margin: 24px auto 0;">
+        <div class="transcript-box" style="min-height:auto;">
+          <div class="transcript-label">All Session Transcripts</div>
+          <div id="all-transcripts-content"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ══════════ DASHBOARD ══════════ -->
+  <section id="dashboard" style="padding-top:32px;">
+    <div style="margin-bottom:40px;" class="reveal">
+      <div class="section-eyebrow">Cognitive Assessment</div>
+      <h2 class="section-title">Your Cognitive Risk Profile</h2>
+      <p class="section-sub" id="dash-sub">Based on 3 baseline recordings — Updated today</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- RISK SCORE CARD -->
+      <div class="risk-score-card reveal" id="risk-card">
+        <div class="score-gauge">
+          <svg viewBox="0 0 180 180">
+            <circle class="gauge-bg" cx="90" cy="90" r="74" />
+            <circle class="gauge-fill" id="gauge-circle" cx="90" cy="90" r="74" stroke="url(#gaugeGrad)"
+              stroke-dasharray="465" stroke-dashoffset="465" />
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#f59e0b" id="grad-stop-1" />
+                <stop offset="100%" stop-color="#ef4444" id="grad-stop-2" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="gauge-center">
+            <div class="gauge-score" id="gauge-score-num" style="color:#f59e0b;">—</div>
+            <div class="gauge-denom">/ 100</div>
+          </div>
+        </div>
+        <div class="risk-info">
+          <div style="margin-bottom:8px;">
+            <span class="risk-status-badge moderate" id="risk-badge">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#f59e0b">
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+              <span id="risk-badge-text">Analysing…</span>
+            </span>
+            <span class="user-profile-badge" id="user-profile-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+              </svg>
+              <span id="user-badge-name">You</span>
+            </span>
+          </div>
+          <h2>Cognitive Risk Score</h2>
+          <p id="risk-description">Analyzing your speech biomarkers…</p>
+          <div class="risk-csi">AI CSI Score: <strong id="risk-csi-score">—</strong><span>/100</span></div>
+          <div class="risk-delta" id="risk-delta" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="18 9 12 15 6 9" />
+            </svg>
+            <span id="risk-delta-text">Calculating…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- WAVEFORM -->
+      <div class="waveform-card reveal">
+        <div class="waveform-header">
+          <div>
+            <h3>Speech Analysis — Session 3</h3>
+            <p>30-second recording · Biomarkers detected</p>
+          </div>
+          <div class="waveform-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#f59e0b;"></div>Stress
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#1a6eb5;"></div>Pitch
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#ef4444;"></div>Hesitation
+            </div>
+          </div>
+        </div>
+        <div class="waveform-container">
+          <svg class="waveform-svg" viewBox="0 0 800 80" preserveAspectRatio="none" id="waveform-svg"></svg>
+          <div class="marker-container" id="markers"></div>
+        </div>
+        <div class="waveform-timeline" id="waveform-timeline"></div>
+      </div>
+
+      <!-- 5 TRAJECTORY GRAPHS -->
+      <div class="graphs-section reveal">
+        <div style="margin-bottom:16px;">
+          <div class="section-eyebrow">Longitudinal Biomarker Trajectories</div>
+          <div style="font-size:13px;color:var(--text-muted);">30-day trends across 5 core cognitive speech dimensions
+          </div>
+        </div>
+        <div class="graphs-grid">
+          <div class="graph-card color-red" id="graph-card-emo">
+            <div class="graph-card-label" id="g-emo-label" style="color:#ef4444;">Emotional Stress</div>
+            <div class="graph-card-title">Emotional Stress Trajectory</div>
+            <div class="graph-card-desc">Volatility and instability in emotional tone across sessions</div>
+            <div class="graph-card-current" id="g-emo-val" style="color:#ef4444;">—</div>
+            <svg class="graph-svg" id="g-emo" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="graph-card color-amber" id="graph-card-cog">
+            <div class="graph-card-label" id="g-cog-label" style="color:#f59e0b;">Cognitive Complexity</div>
+            <div class="graph-card-title">Cognitive Complexity Decline</div>
+            <div class="graph-card-desc">Lexical richness and sentence structural complexity over time</div>
+            <div class="graph-card-current" id="g-cog-val" style="color:#f59e0b;">—</div>
+            <svg class="graph-svg" id="g-cog" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="graph-card color-purple" id="graph-card-hes">
+            <div class="graph-card-label" id="g-hes-label" style="color:#8b5cf6;">Hesitation</div>
+            <div class="graph-card-title">Speech Hesitation Escalation</div>
+            <div class="graph-card-desc">Frequency of pauses, filler words, and disfluencies per minute</div>
+            <div class="graph-card-current" id="g-hes-val" style="color:#8b5cf6;">—</div>
+            <svg class="graph-svg" id="g-hes" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+        <div class="graphs-grid-bottom">
+          <div class="graph-card color-teal" id="graph-card-lin">
+            <div class="graph-card-label" id="g-lin-label" style="color:#18b09e;">Linguistic Efficiency</div>
+            <div class="graph-card-title">Linguistic Efficiency Decline</div>
+            <div class="graph-card-desc">Information density and meaningful content per spoken segment</div>
+            <div class="graph-card-current" id="g-lin-val" style="color:#18b09e;">—</div>
+            <svg class="graph-svg" id="g-lin" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="graph-card color-blue" id="graph-card-risk">
+            <div class="graph-card-label" id="g-risk-label" style="color:#1a6eb5;">Risk Accumulation</div>
+            <div class="graph-card-title">Risk Accumulation Curve</div>
+            <div class="graph-card-desc">Composite weighted CRS trend — cumulative deviation from baseline</div>
+            <div class="graph-card-current" id="g-risk-val" style="color:#1a6eb5;">—</div>
+            <svg class="graph-svg" id="g-risk" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI INSIGHT -->
+      <div class="insight-card reveal" style="grid-column:1/-1;">
+        <div class="insight-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </div>
+        <div style="flex:1;">
+          <div class="insight-label">AI Interpretation</div>
+          <p class="insight-text" id="insight-text">Analyzing your speech biomarkers…</p>
+          <div class="insight-footer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span id="insight-meta">Generated today · Not a clinical diagnosis</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DERIVED INDICES -->
+      <div class="indices-grid reveal">
+        <div class="index-card">
+          <div class="index-card-header">
+            <div class="index-card-label">Emotional Stability Index</div>
+            <div class="info-icon-wrap">
+              <button class="info-icon-btn" onclick="toggleInfo('info-emo')"
+                aria-label="What is Emotional Stability Index?">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </button>
+              <div class="info-tooltip" id="info-emo">
+                <div class="info-tooltip-title">Emotional Stability Index</div>
+                <p>Measures how consistent and calm your emotional tone is across speech. A higher score means your
+                  voice shows steady, neutral-positive affect — a sign of low emotional stress. Sudden tone swings or
+                  heightened emotional volatility lower this score.</p>
+              </div>
+            </div>
+          </div>
+          <div class="index-value" id="idx-emo" style="color:#f59e0b;">—</div>
+          <div class="index-bar-wrap">
+            <div class="index-bar" id="idx-emo-bar"
+              style="background:linear-gradient(90deg,#f59e0b,#fbbf24); width:0%;"></div>
+          </div>
+          <div class="index-range"><span>0</span><span>100</span></div>
+        </div>
+        <div class="index-card">
+          <div class="index-card-header">
+            <div class="index-card-label">Cognitive Complexity Index</div>
+            <div class="info-icon-wrap">
+              <button class="info-icon-btn" onclick="toggleInfo('info-cog')"
+                aria-label="What is Cognitive Complexity Index?">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </button>
+              <div class="info-tooltip" id="info-cog">
+                <div class="info-tooltip-title">Cognitive Complexity Index</div>
+                <p>Reflects the richness of your vocabulary and how well-structured your sentences are. Higher scores
+                  indicate diverse word choice and coherent, multi-clause sentences — markers of strong cognitive
+                  engagement. Declining scores may indicate word-finding difficulty or simplified speech patterns.</p>
+              </div>
+            </div>
+          </div>
+          <div class="index-value" id="idx-cog" style="color:#f59e0b;">—</div>
+          <div class="index-bar-wrap">
+            <div class="index-bar" id="idx-cog-bar"
+              style="background:linear-gradient(90deg,#f59e0b,#fbbf24); width:0%;"></div>
+          </div>
+          <div class="index-range"><span>0</span><span>100</span></div>
+        </div>
+        <div class="index-card">
+          <div class="index-card-header">
+            <div class="index-card-label">Speech Fluency Index</div>
+            <div class="info-icon-wrap">
+              <button class="info-icon-btn" onclick="toggleInfo('info-flu')" aria-label="What is Speech Fluency Index?">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </button>
+              <div class="info-tooltip" id="info-flu">
+                <div class="info-tooltip-title">Speech Fluency Index</div>
+                <p>Tracks the smoothness and continuity of your speech. It penalizes frequent pauses, filler words
+                  ("um", "uh", "like"), incomplete sentences, and mid-thought restarts. A high score means you spoke
+                  with confidence and flow — an indicator of healthy verbal processing speed.</p>
+              </div>
+            </div>
+          </div>
+          <div class="index-value" id="idx-flu" style="color:#ef4444;">—</div>
+          <div class="index-bar-wrap">
+            <div class="index-bar" id="idx-flu-bar"
+              style="background:linear-gradient(90deg,#ef4444,#f87171); width:0%;"></div>
+          </div>
+          <div class="index-range"><span>0</span><span>100</span></div>
+        </div>
+      </div>
+
+      <!-- RE-RECORD BUTTON (shown after analysis is complete) -->
+      <div style="grid-column:1/-1; text-align:center; padding-top:8px;" class="reveal">
+        <button class="rerecord-btn" id="rerecord-btn" onclick="startNewRecording()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 .49-4" />
+          </svg>
+          Record New Session
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PROFILE PAGE ══════════ -->
+  <section id="profile-page" style="display:none; padding-top:96px; text-align:center;">
+    <div class="profile-page-card">
+      <div class="profile-avatar-large" id="profile-avatar-large"></div>
+      <h2 id="profile-name-large" style="font-family:'Playfair Display',serif; font-size:24px; margin-bottom:4px;"></h2>
+      <p id="profile-email-large" style="color:var(--text-secondary); margin-bottom:20px;"></p>
+      <div style="background:var(--bg); border-radius:10px; padding:16px; text-align:left; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Age Group</strong><span
+            id="profile-age-large"></span></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Monitoring Start
+            Date</strong><span id="profile-start-date"></span></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Baseline
+            Established</strong><span id="profile-baseline">Yes</span></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><strong>Total
+            Recordings</strong><span id="profile-total-rec">17</span></div>
+        <div style="display:flex; justify-content:space-between;"><strong>Risk Level</strong><span
+            id="profile-risk-large" style="font-weight:700;"></span></div>
+      </div>
+
+      <div style="text-align:left; margin-bottom:20px;">
+        <h3 style="font-size:16px; margin-bottom:12px; color:var(--navy);">Recording History</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+          <tr style="border-bottom:2px solid var(--border); color:var(--text-muted); text-align:left;">
+            <th style="padding:8px 4px;">Date</th>
+            <th style="padding:8px 4px;">Risk Score</th>
+            <th style="padding:8px 4px;">Status</th>
+            <th style="padding:8px 4px;">Deviation</th>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border-soft);">
+            <td style="padding:8px 4px;">Feb 14</td>
+            <td style="padding:8px 4px;">42</td>
+            <td style="padding:8px 4px;color:#10b981;">Stable</td>
+            <td style="padding:8px 4px;color:#10b981;">+2%</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border-soft);">
+            <td style="padding:8px 4px;">Feb 5</td>
+            <td style="padding:8px 4px;">48</td>
+            <td style="padding:8px 4px;color:#f59e0b;">Watch</td>
+            <td style="padding:8px 4px;color:#f59e0b;">+8%</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border-soft);">
+            <td style="padding:8px 4px;">Feb 10</td>
+            <td style="padding:8px 4px;">55</td>
+            <td style="padding:8px 4px;color:#f59e0b;">Moderate</td>
+            <td style="padding:8px 4px;color:#ef4444;">+14%</td>
+          </tr>
+        </table>
+
+        <div
+          style="background:linear-gradient(135deg,#edf4ff,#e8f8f6); border:1px solid rgba(26,110,181,0.15); border-radius:10px; padding:14px; margin-bottom:16px; font-size:13px;">
+          <strong style="color:var(--blue); display:block; margin-bottom:4px;">Weekly AI Summary</strong>
+          Your cognitive biomarkers remain relatively stable over the past week. Consistent recordings over the next
+          week will help clarify the trajectory.
+        </div>
+
+        <button class="btn-secondary" style="width:100%; justify-content:center; margin-bottom:16px;"
+          onclick="alert('Exporting PDF...')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="margin-right:6px;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Export Cognitive Report (PDF)
+        </button>
+      </div>
+      <div style="display:flex; justify-content:space-between;"><strong>Risk Level</strong><span id="profile-risk-large"
+          style="font-weight:700;"></span></div>
+    </div>
+    <button class="btn-primary" onclick="goBack()">Back to Dashboard</button>
+    </div>
+  </section>
+
+  <!-- ══════════ SETTINGS PAGE ══════════ -->
+  <section id="settings-page" style="display:none; padding-top:96px;">
+    <div class="settings-card">
+      <h2 style="font-family:'Playfair Display',serif; margin-bottom:24px;">Account Settings</h2>
+      <div class="settings-section">
+        <label>Name<input type="text" id="settings-name"></label>
+        <label>Email<input type="email" id="settings-email"></label>
+        <label>Password<input type="password" id="settings-password" placeholder="••••••••"></label>
+        <div style="display:flex; gap:10px;">
+          <label style="flex:1;">Age<input type="number" id="settings-age"></label>
+          <label style="flex:1;">Gender
+            <select id="settings-gender"
+              style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; margin-top:4px;">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+        </div>
+        <label>Pre-existing Conditions<input type="text" id="settings-conditions"
+            placeholder="e.g. Mild Cognitive Impairment, None"></label>
+        <label>Primary Physician<input type="text" id="settings-clinician"
+            placeholder="e.g. Dr. Smith, City Health"></label>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn-primary" onclick="saveSettings()">Save Changes</button>
+          <button class="btn-secondary" onclick="goBack()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ COMPARE PAGE ══════════ -->
+  <div id="compare-page" style="display:none;">
+    <div class="compare-page-inner">
+      <div class="compare-header">
+        <div class="section-eyebrow">Side-by-Side Analysis</div>
+        <h2 class="compare-title">Your Analysis vs Reference Patients</h2>
+        <p class="compare-sub">Compare your recorded cognitive biomarkers against clinical reference profiles to
+          understand your relative position.</p>
+      </div>
+
+      <!-- PATIENT TABS -->
+      <div class="patient-tabs">
+        <button class="patient-tab active-a" id="ctab-A" onclick="selectComparePatient('A')">
+          <div style="width:10px;height:10px;border-radius:50%;background:#10b981;"></div>
+          Patient A — Stable
+        </button>
+        <button class="patient-tab" id="ctab-B" onclick="selectComparePatient('B')">
+          <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>
+          Patient B — Worsening
+        </button>
+        <button class="patient-tab" id="ctab-C" onclick="selectComparePatient('C')">
+          <div style="width:10px;height:10px;border-radius:50%;background:#1a6eb5;"></div>
+          Patient C — Recovery
+        </button>
+      </div>
+
+      <!-- DELTA SUMMARY CARDS -->
+      <div class="compare-delta-row">
+        <div class="compare-delta-card">
+          <div class="compare-delta-label">Your Risk Score</div>
+          <div class="compare-delta-val" id="cd-user-score" style="color:var(--blue);">—</div>
+          <div class="compare-delta-note">out of 100</div>
+        </div>
+        <div class="compare-delta-card">
+          <div class="compare-delta-label">Reference Score</div>
+          <div class="compare-delta-val" id="cd-ref-score" style="color:#10b981;">—</div>
+          <div class="compare-delta-note" id="cd-ref-name">Patient A</div>
+        </div>
+        <div class="compare-delta-card">
+          <div class="compare-delta-label">Your CSI</div>
+          <div class="compare-delta-val" id="cd-user-csi" style="color:var(--teal);">—</div>
+          <div class="compare-delta-note">AI cognitive complexity</div>
+        </div>
+        <div class="compare-delta-card">
+          <div class="compare-delta-label">Reference CSI</div>
+          <div class="compare-delta-val" id="cd-ref-csi" style="color:#10b981;">—</div>
+          <div class="compare-delta-note" id="cd-ref-csi-name">Patient A</div>
+        </div>
+        <div class="compare-delta-card">
+          <div class="compare-delta-label">CSI Delta</div>
+          <div class="compare-delta-val" id="cd-csi-delta" style="color:#f59e0b;">—</div>
+          <div class="compare-delta-note" id="cd-csi-delta-note">Difference</div>
+        </div>
+        <div class="compare-delta-card">
+          <div class="compare-delta-label">Risk Delta</div>
+          <div class="compare-delta-val" id="cd-delta" style="color:#f59e0b;">—</div>
+          <div class="compare-delta-note" id="cd-delta-note">Difference</div>
+        </div>
+      </div>
+
+      <!-- SIDE BY SIDE SCORES -->
+      <div class="compare-columns" id="compare-columns">
+        <!-- left: user -->
+        <div>
+          <div class="compare-col-header user-col">
+            <h3 id="compare-user-name">You</h3>
+            <p>Live Recording Analysis</p>
+            <div class="compare-score-big" id="compare-user-score-big" style="color:var(--blue);">—</div>
+            <span class="risk-status-badge" id="compare-user-badge" style="margin-top:4px;display:inline-flex;">—</span>
+          </div>
+          <div class="compare-metrics" id="compare-user-metrics"></div>
+        </div>
+        <!-- right: reference patient -->
+        <div>
+          <div class="compare-col-header ref-col" id="compare-ref-header">
+            <h3 id="compare-ref-name">Patient A</h3>
+            <p id="compare-ref-type">Reference Profile · Stable</p>
+            <div class="compare-score-big" id="compare-ref-score-big" style="color:#10b981;">—</div>
+            <span class="risk-status-badge" id="compare-ref-badge" style="margin-top:4px;display:inline-flex;">—</span>
+          </div>
+          <div class="compare-metrics" id="compare-ref-metrics"></div>
+        </div>
+      </div>
+
+      <!-- TRANSCRIPT COMPARISON -->
+      <div class="compare-transcript">
+        <h4>📝 Your Session Transcripts vs Reference Profile</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div>
+            <div
+              style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;">
+              Your Recordings</div>
+            <div class="transcript-compare-box" id="compare-user-transcript">No transcript available yet. Complete at
+              least one recording first.</div>
+          </div>
+          <div>
+            <div
+              style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">
+              Reference Notes</div>
+            <div class="transcript-compare-box" id="compare-ref-transcript">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI COMPARE INSIGHT -->
+      <div class="compare-insight">
+        <div class="insight-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </div>
+        <div style="flex:1;">
+          <div class="insight-label">AI Comparative Interpretation</div>
+          <p class="insight-text" id="compare-insight-text">Select a reference patient above to see your comparative
+            analysis.</p>
+          <div class="insight-footer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span id="compare-insight-meta">Not a clinical diagnosis · For investigational use only</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:16px;">
+        <button class="btn-secondary" onclick="goBack()">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-brand">
+      <div class="footer-brand-icon">
+        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="url(#brain-grad-footer)"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="brain-grad-footer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#14f1d9" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+          </defs>
+          <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+          <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+          <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
+          <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path>
+          <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path>
+          <path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path>
+          <path d="M19.938 10.5a4 4 0 0 1 .585.396"></path>
+          <path d="M6 18a4 4 0 0 1-1.967-.516"></path>
+          <path d="M19.967 17.484A4 4 0 0 1 18 18"></path>
+        </svg>
+      </div>
+      COGNIVARA
+    </div>
+    <div class="footer-note">For investigational use only. Not FDA approved. Demo build for academic presentation.</div>
+  </footer>
+
+  <script>
+    // ══════════════════════════════════════════════
+    //  REFERENCE PATIENT DATA
+    // ══════════════════════════════════════════════
+    const PATIENTS = {
+      A: {
+        name: 'Patient A', type: 'Stable', typeColor: '#10b981',
+        riskScore: 38, riskLabel: 'Low Risk', riskClass: 'low', riskColor: '#10b981',
+        gradStop1: '#10b981', gradStop2: '#34d399',
+        deltaText: '3% below baseline — Stable trajectory',
+        deltaStyle: 'background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;',
+        deltaArrow: 'down',
+        description: 'Speech biomarkers within normal variation. No significant deviation from baseline. Cognitive markers stable across all sessions.',
+        insight: 'This patient shows consistent stability across all 30 sessions. Emotional tone, hesitation rate, and vocabulary complexity remain within expected baseline variance. No clinical intervention warranted. Continue routine monitoring every 30 days.',
+        insightMeta: 'Patient A · Stable profile · Not a clinical diagnosis',
+        indices: { emo: 82, cog: 78, flu: 84 },
+        indexColors: { emo: '#10b981', cog: '#10b981', flu: '#10b981' },
+        emo: [28, 30, 31, 29, 33], cog: [80, 79, 81, 78, 80],
+        hes: [12, 14, 13, 15, 14], lin: [76, 77, 75, 78, 76], risk: [35, 37, 36, 38, 38],
+        transcriptNote: 'Patient A demonstrates fluent, well-structured speech with minimal hesitations. Vocabulary diversity is high. Sentence completion rate: 98%. Emotional tone: neutral-positive.',
+      },
+      B: {
+        name: 'Patient B', type: 'Worsening', typeColor: '#ef4444',
+        riskScore: 74, riskLabel: 'High Risk', riskClass: 'high', riskColor: '#ef4444',
+        gradStop1: '#f59e0b', gradStop2: '#ef4444',
+        deltaText: '24% above baseline — Deteriorating rapidly',
+        deltaStyle: 'background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;',
+        deltaArrow: 'up',
+        description: 'Significant deterioration detected. Elevated hesitation frequency, vocabulary drop, and emotional volatility all trending upward at an accelerating rate.',
+        insight: 'Multiple convergent markers indicate rapid cognitive decline. Hesitation frequency increased 68% from baseline. Emotional stress index rose sharply over two weeks. Linguistic efficiency at clinically concerning level. Immediate clinical referral strongly recommended.',
+        insightMeta: 'Patient B · High-risk alert · Not a clinical diagnosis',
+        indices: { emo: 31, cog: 29, flu: 26 },
+        indexColors: { emo: '#ef4444', cog: '#ef4444', flu: '#ef4444' },
+        emo: [38, 46, 55, 63, 74], cog: [68, 60, 52, 44, 35],
+        hes: [18, 28, 39, 52, 68], lin: [65, 56, 46, 38, 28], risk: [42, 50, 58, 66, 74],
+        transcriptNote: 'Patient B shows increasing word-finding difficulties, frequent mid-sentence pauses (avg 3.2s), rising filler word frequency ("um", "uh" every ~8 words). Sentence completion rate dropped to 71%. Topic coherence declining.',
+      },
+      C: {
+        name: 'Patient C', type: 'Recovery', typeColor: '#1a6eb5',
+        riskScore: 44, riskLabel: 'Moderate Risk', riskClass: 'moderate', riskColor: '#f59e0b',
+        gradStop1: '#f59e0b', gradStop2: '#18b09e',
+        deltaText: '18% improvement from peak — Recovering',
+        deltaStyle: 'background:#eff6ff;border:1px solid #93c5fd;color:#1e40af;',
+        deltaArrow: 'down',
+        description: 'Patient experienced elevated risk following a cognitive stress event. Intervention at Day 14. Measurable recovery trend detected across all five biomarker domains since Day 21.',
+        insight: 'Following clinical intervention at Day 14, all major biomarkers show a consistent recovery trajectory. Hesitation rates decreased 34% from peak. Linguistic efficiency and emotional stability trending toward baseline. Continue current treatment protocol and reassess at Day 45.',
+        insightMeta: 'Patient C · Recovery trajectory · Not a clinical diagnosis',
+        indices: { emo: 61, cog: 58, flu: 55 },
+        indexColors: { emo: '#f59e0b', cog: '#f59e0b', flu: '#f59e0b' },
+        emo: [44, 60, 72, 58, 46], cog: [72, 58, 44, 55, 64],
+        hes: [22, 38, 56, 42, 32], lin: [68, 52, 38, 50, 60], risk: [48, 62, 74, 60, 44],
+        transcriptNote: 'Patient C initially showed significant speech disruption post-event. Following intervention, speech fluency improved steadily. Current session shows recovering sentence structure, reduced hesitations, and growing vocabulary breadth.',
+      }
+    };
+
+    // ══════════════════════════════════════════════
+    //  USER ANALYSIS DATA (computed from recordings)
+    // ══════════════════════════════════════════════
+    let userAnalysis = null;
+    let allTranscripts = [];   // array of {session, text}
+    let currentComparePatient = 'A';
+    let backendStatusBase = null;
+    let backendStatusBusy = false;
+
+    function getApiBase() {
+      if (window.COGNIVARA_API_BASE && String(window.COGNIVARA_API_BASE).trim()) {
+        return String(window.COGNIVARA_API_BASE).trim().replace(/\/$/, '');
+      }
+      if (window.location.protocol === 'file:') return 'http://localhost:8000';
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:8000';
+      return window.location.origin;
+    }
+
+    function getApiCandidates() {
+      const set = new Set();
+      if (backendStatusBase) set.add(backendStatusBase);
+      const preferred = getApiBase();
+      if (preferred) set.add(preferred);
+      if (window.location.origin && /^https?:\/\//.test(window.location.origin)) set.add(window.location.origin);
+      set.add('http://localhost:8000');
+      set.add('http://127.0.0.1:8000');
+      set.add('http://localhost:3000');
+      set.add('http://127.0.0.1:3000');
+      return Array.from(set);
+    }
+
+    function getCurrentUserId() {
+      const u = JSON.parse(localStorage.getItem('cognivara_user') || '{}');
+      if (u.email && u.email.trim()) return u.email.trim().toLowerCase();
+      if (u.name && u.name.trim()) return u.name.trim().toLowerCase().replace(/\s+/g, '_');
+      return 'anonymous_user';
+    }
+
+    function backendHostLabel(base) {
+      try {
+        return new URL(base).host;
+      } catch (e) {
+        return base || 'unknown';
+      }
+    }
+
+    function setBackendStatus(state, text, title) {
+      const badge = document.getElementById('backend-status');
+      const label = document.getElementById('backend-status-text');
+      if (!badge || !label) return;
+      badge.classList.remove('online', 'offline', 'checking');
+      badge.classList.add(state);
+      label.textContent = text || 'Backend';
+      badge.title = title || text || 'Backend status';
+    }
+
+    async function probeBackend(base) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2500);
+        const resp = await fetch(`${base}/health`, { method: 'GET', signal: ctrl.signal });
+        clearTimeout(t);
+        return resp.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function refreshBackendStatus(force = false) {
+      if (backendStatusBusy && !force) return false;
+      backendStatusBusy = true;
+      setBackendStatus('checking', 'Backend: checking', 'Checking backend connectivity');
+      try {
+        for (const base of getApiCandidates()) {
+          const ok = await probeBackend(base);
+          if (ok) {
+            backendStatusBase = base;
+            setBackendStatus('online', `Backend: online (${backendHostLabel(base)})`, `Connected to ${base}`);
+            return true;
+          }
+        }
+        setBackendStatus('offline', 'Backend: offline', 'FastAPI backend is not reachable');
+        return false;
+      } finally {
+        backendStatusBusy = false;
+      }
+    }
+
+    function clampScore(v) {
+      const n = Math.round(Number(v) || 0);
+      return Math.max(0, Math.min(100, n));
+    }
+
+    function localHeuristicAnalysis(text) {
+      const words = (text || '').toLowerCase().match(/[a-z']+/g) || [];
+      const sentences = (text || '').split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+      const wordCount = words.length;
+      const sentenceCount = Math.max(1, sentences.length);
+      const avgSentenceLen = wordCount / sentenceCount;
+      const unique = new Set(words).size;
+      const lexicalRichness = wordCount ? unique / wordCount : 0;
+      const fillerSet = new Set(['um', 'uh', 'like', 'you', 'know', 'actually', 'basically', 'so']);
+      const fillerCount = words.filter(w => fillerSet.has(w)).length;
+      const fillerRatio = wordCount ? fillerCount / wordCount : 0;
+      const repetitions = words.slice(1).reduce((n, w, i) => n + (w === words[i] ? 1 : 0), 0);
+      const repetitionRatio = wordCount ? repetitions / wordCount : 0;
+
+      const cog = clampScore(
+        18 +
+        lexicalRichness * 56 +
+        Math.min(avgSentenceLen, 24) * 1.45 -
+        repetitionRatio * 70 -
+        fillerRatio * 45
+      );
+      const hes = clampScore(
+        10 +
+        fillerRatio * 220 +
+        repetitionRatio * 80 +
+        Math.max(0, 13 - avgSentenceLen) * 1.55
+      );
+      const lin = clampScore(
+        15 +
+        lexicalRichness * 62 +
+        Math.min(avgSentenceLen, 22) * 1.35 -
+        repetitionRatio * 72 -
+        fillerRatio * 35
+      );
+      const emo = clampScore(35 + fillerRatio * 45 + repetitionRatio * 28 + Math.max(0, 10 - avgSentenceLen) * 1.5);
+      const risk = clampScore(
+        emo * 0.34 +
+        hes * 0.28 +
+        (100 - cog) * 0.2 +
+        (100 - lin) * 0.18
+      );
+
+      return {
+        emo, cog, hes, lin, risk,
+        insight: `Local fallback analysis: lexical_richness=${lexicalRichness.toFixed(2)}, filler_ratio=${fillerRatio.toFixed(2)}.`
+      };
+    }
+
+    function buildAnalysisFromParsedSessions(perSession, transcripts, sourceLabel) {
+      const emoArr = perSession.map(p => clampScore(p.emo));
+      const csiArr = perSession.map(p => clampScore(p.csi ?? p.cog));
+      const cogArr = [...csiArr];
+      const hesArr = perSession.map(p => clampScore(p.hes));
+      const linArr = perSession.map(p => clampScore(p.lin));
+      const riskArr = perSession.map(p => clampScore(p.risk));
+
+      const riskScore = Math.round(riskArr.reduce((a, b) => a + b, 0) / Math.max(riskArr.length, 1));
+
+      let riskLabel, riskClass, riskColor, gradStop1, gradStop2, deltaText, deltaArrow;
+      if (riskScore < 45) {
+        riskLabel = 'Low Risk'; riskClass = 'low'; riskColor = '#10b981';
+        gradStop1 = '#10b981'; gradStop2 = '#34d399';
+        deltaText = `Stable trajectory`; deltaArrow = 'down';
+      } else if (riskScore < 65) {
+        riskLabel = 'Moderate Risk'; riskClass = 'moderate'; riskColor = '#f59e0b';
+        gradStop1 = '#f59e0b'; gradStop2 = '#18b09e';
+        deltaText = `Monitor closely`; deltaArrow = 'up';
+      } else {
+        riskLabel = 'High Risk'; riskClass = 'high'; riskColor = '#ef4444';
+        gradStop1 = '#f59e0b'; gradStop2 = '#ef4444';
+        deltaText = `Elevated concern`; deltaArrow = 'up';
+      }
+
+      const emoIdx = Math.round(emoArr.reduce((a, b) => a + b, 0) / Math.max(emoArr.length, 1));
+      const csiScore = Math.round(csiArr.reduce((a, b) => a + b, 0) / Math.max(csiArr.length, 1));
+      const cogIdx = csiScore;
+      const fluIdx = Math.round(linArr.reduce((a, b) => a + b, 0) / Math.max(linArr.length, 1));
+
+      return {
+        riskScore, riskLabel, riskClass, riskColor, gradStop1, gradStop2,
+        deltaText, deltaArrow,
+        description: `Your speech biomarkers have been analyzed across ${transcripts.length} sessions (${sourceLabel}).`,
+        insight: perSession.map(p => p.insight || '').filter(Boolean).join('\n---\n') || 'Analysis complete.',
+        insightMeta: `Generated today · ${sourceLabel} · Not a clinical diagnosis`,
+        csiScore,
+        indices: { emo: emoIdx, cog: cogIdx, flu: fluIdx },
+        indexColors: { emo: riskColor, cog: riskColor, flu: riskColor },
+        emo: emoArr, csi: csiArr, cog: cogArr, hes: hesArr, lin: linArr, risk: riskArr,
+        transcripts, sessions: perSession
+      };
+    }
+
+    async function computeUserAnalysis(transcripts) {
+      function isInvalidTranscript(t) {
+        if (!t || !t.text || !t.text.trim()) return true;
+        const lower = t.text.toLowerCase();
+        return lower.includes('no speech recognized') || lower.includes('waiting for whisper');
+      }
+
+      const invalid = transcripts.filter(isInvalidTranscript);
+      const skippedSessions = invalid.map(t => t.session);
+      if (skippedSessions.length) showTranscriptWarning(skippedSessions);
+      const validTranscripts = transcripts.filter(t => !isInvalidTranscript(t));
+      if (!validTranscripts.length) throw new Error('No valid transcripts available for analysis.');
+
+      const userId = getCurrentUserId();
+      let dashboardErr = null;
+
+      // Skip probing FastAPI /dashboard endpoint by default since it delays 
+      // the UX by ~10000ms trying to connect to a port 8000 server that doesn't exist.
+
+      // Fallback path: legacy Node endpoint /analyze (works on :3000).
+      let legacyErr = null;
+      for (const base of getApiCandidates()) {
+        try {
+          const perSession = [];
+          for (const t of validTranscripts) {
+            const endpoint = `${base}/analyze`;
+            const resp = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: t.text })
+            });
+            let jd = {};
+            try { jd = await resp.json(); } catch (e) { }
+            if (!resp.ok) throw new Error(jd.error || `Session ${t.session} analysis failed (${resp.status})`);
+            if (!jd.parsed) throw new Error(`Session ${t.session} returned no parsed analysis`);
+            perSession.push({ session: t.session, ...jd.parsed });
+          }
+          backendStatusBase = base;
+          setBackendStatus('online', `Backend: online (${backendHostLabel(base)} legacy)`, `Using legacy analysis endpoint on ${base}`);
+          return buildAnalysisFromParsedSessions(perSession, transcripts, 'Legacy Node analysis');
+        } catch (e) {
+          legacyErr = e;
+        }
+      }
+
+      // Last-resort local analysis so dashboard still works offline.
+      const localPerSession = validTranscripts.map(t => ({ session: t.session, ...localHeuristicAnalysis(t.text) }));
+      if (localPerSession.length) {
+        setBackendStatus('checking', 'Backend: local fallback', 'Using in-browser fallback analysis');
+        return buildAnalysisFromParsedSessions(localPerSession, transcripts, 'Local fallback analysis');
+      }
+
+      setBackendStatus('offline', 'Backend: offline', 'Analysis endpoints are unreachable');
+      const dmsg = dashboardErr && dashboardErr.message ? dashboardErr.message : '';
+      const lmsg = legacyErr && legacyErr.message ? legacyErr.message : '';
+      throw new Error(`${dmsg}${dmsg && lmsg ? ' | ' : ''}${lmsg}` || 'Backend unreachable. Start FastAPI on http://localhost:8000 or run Node backend on http://localhost:3000.');
+    }
+
+    // Helper: display a warning banner for skipped sessions
+    function showTranscriptWarning(sessions) {
+      const msg = 'Session' + (sessions.length > 1 ? 's ' : ' ') + sessions.join(', ') + ' had no transcript and ' + (sessions.length > 1 ? 'were' : 'was') + ' skipped.';
+      let banner = document.getElementById('transcript-warning-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'transcript-warning-banner';
+        banner.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);backdrop-filter:blur(12px);padding:12px 24px;border-radius:12px;font-size:14px;font-weight:500;font-family:Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,0.3);animation:fadeUp 0.5s ease both;max-width:90%;text-align:center;';
+        document.body.appendChild(banner);
+        setTimeout(function () { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 8000);
+      }
+      banner.textContent = '\u26A0\uFE0F ' + msg;
+    }
+
+    // ══════════════════════════════════════════════
+    //  GRAPH RENDERING
+    // ══════════════════════════════════════════════
+    function makePath(data, svgW, svgH, color, filled) {
+      const pad = { l: 8, r: 8, t: 12, b: 22 };
+      const w = svgW - pad.l - pad.r;
+      const h = svgH - pad.t - pad.b;
+      const min = Math.min(...data) * 0.92;
+      const max = Math.max(...data) * 1.08;
+      const range = max - min || 1;
+      const pts = data.map((v, i) => {
+        const x = pad.l + (i / (data.length - 1)) * w;
+        const y = pad.t + h - ((v - min) / range) * h;
+        return [x, y];
+      });
+      let d = `M ${pts[0][0]} ${pts[0][1]}`;
+      for (let i = 1; i < pts.length; i++) {
+        const cx1 = (pts[i - 1][0] + pts[i][0]) / 2;
+        d += ` C ${cx1} ${pts[i - 1][1]} ${cx1} ${pts[i][1]} ${pts[i][0]} ${pts[i][1]}`;
+      }
+      let html = '';
+      if (filled) {
+        const fillPath = d + ` L ${pts[pts.length - 1][0]} ${svgH - pad.b} L ${pts[0][0]} ${svgH - pad.b} Z`;
+        html += `<path d="${fillPath}" fill="${color}" opacity="0.1"/>`;
+      }
+      html += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+      data.forEach((v, i) => {
+        const [x, y] = pts[i];
+        const isLast = i === data.length - 1;
+        html += `<circle cx="${x}" cy="${y}" r="${isLast ? 4.5 : 3}" fill="${color}" ${isLast ? `stroke="white" stroke-width="1.5"` : `opacity="0.7"`}/>`;
+      });
+      const sessionTicks = data.map((_, i) => `S${i + 1}`);
+      data.forEach((v, i) => {
+        html += `<text x="${pts[i][0]}" y="${svgH - 4}" font-size="9" fill="#8a9ab0" font-family="Inter" text-anchor="middle">${sessionTicks[i]}</text>`;
+      });
+      const baseY = pad.t + h - ((data[0] - min) / range) * h;
+      html += `<line x1="${pad.l}" y1="${baseY}" x2="${svgW - pad.r}" y2="${baseY}" stroke="#d8e0ea" stroke-width="1" stroke-dasharray="4,3"/>`;
+      return html;
+    }
+
+    function scoreToneColor(value, higherIsBetter = true, maxVal = 100) {
+      const raw = Number(value) || 0;
+      const normalized = Math.max(0, Math.min(100, (raw / Math.max(1, maxVal)) * 100));
+      const quality = higherIsBetter ? normalized : (100 - normalized);
+      if (quality >= 70) return '#10b981'; // good
+      if (quality >= 45) return '#f59e0b'; // risky
+      return '#ef4444'; // bad
+    }
+
+    function renderUserDashboard(analysis) {
+      const p = analysis;
+      // Gauge
+      const scoreEl = document.getElementById('gauge-score-num');
+      const circle = document.getElementById('gauge-circle');
+      scoreEl.textContent = p.riskScore;
+      scoreEl.style.color = p.riskColor;
+      document.getElementById('grad-stop-1').setAttribute('stop-color', p.gradStop1);
+      document.getElementById('grad-stop-2').setAttribute('stop-color', p.gradStop2);
+      setTimeout(() => {
+        circle.style.strokeDashoffset = 465 - (p.riskScore / 100) * 465;
+      }, 300);
+
+      // Risk badge
+      const badge = document.getElementById('risk-badge');
+      const dotColor = p.riskClass === 'low' ? '#10b981' : p.riskClass === 'high' ? '#ef4444' : '#f59e0b';
+      badge.className = `risk-status-badge ${p.riskClass}`;
+      badge.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="${dotColor}"><circle cx="12" cy="12" r="10"/></svg><span>${p.riskLabel}</span>`;
+
+      // User badge
+      const user = JSON.parse(localStorage.getItem('cognivara_user') || '{}');
+      document.getElementById('user-badge-name').textContent = user.name ? user.name.split(' ')[0] + ' · Personal Analysis' : 'You · Personal Analysis';
+
+      document.getElementById('risk-description').textContent = p.description;
+
+      const delta = document.getElementById('risk-delta');
+      const arrow = p.deltaArrow === 'up' ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="18 9 12 15 6 9"/>';
+      delta.style.cssText = p.riskClass === 'low' ? 'background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;' : p.riskClass === 'high' ? 'background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;' : 'background:#eff6ff;border:1px solid #93c5fd;color:#1e40af;';
+      delta.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${arrow}</svg><span>${p.deltaText}</span>`;
+
+      document.getElementById('insight-text').textContent = p.insight;
+      document.getElementById('insight-meta').textContent = p.insightMeta;
+      document.getElementById('risk-csi-score').textContent = p.csiScore ?? p.indices?.cog ?? '—';
+
+      const { emo, cog, flu } = p.indices;
+      ['emo', 'cog', 'flu'].forEach(k => {
+        document.getElementById(`idx-${k}`).textContent = p.indices[k];
+        document.getElementById(`idx-${k}`).style.color = p.indexColors[k];
+        document.getElementById(`idx-${k}-bar`).style.width = p.indices[k] + '%';
+        document.getElementById(`idx-${k}-bar`).style.background = `linear-gradient(90deg,${p.indexColors[k]},${p.indexColors[k]}88)`;
+      });
+
+      // Graphs (dynamic severity coloring: good=green, risky=yellow, bad=red)
+      [
+        { id: 'emo', data: p.emo, suffix: '/100', higherIsBetter: false, max: 100 },
+        { id: 'cog', data: p.cog, suffix: '/100', higherIsBetter: true, max: 100 },
+        { id: 'hes', data: p.hes, suffix: '/min', higherIsBetter: false, max: 80 },
+        { id: 'lin', data: p.lin, suffix: '/100', higherIsBetter: true, max: 100 },
+        { id: 'risk', data: p.risk, suffix: '/100', higherIsBetter: false, max: 100 }
+      ].forEach(m => {
+        const current = Array.isArray(m.data) && m.data.length ? m.data[m.data.length - 1] : 0;
+        const tone = scoreToneColor(current, m.higherIsBetter, m.max);
+        const svg = document.getElementById(`g-${m.id}`);
+        if (svg) svg.innerHTML = makePath(m.data, 300, 90, tone, true);
+
+        const val = document.getElementById(`g-${m.id}-val`);
+        if (val) {
+          val.textContent = current + m.suffix;
+          val.style.color = tone;
+        }
+
+        const label = document.getElementById(`g-${m.id}-label`);
+        if (label) label.style.color = tone;
+
+        const card = document.getElementById(`graph-card-${m.id}`);
+        if (card) {
+          card.style.setProperty('--graph-accent', tone);
+          card.style.setProperty('--graph-accent-soft', `${tone}99`);
+        }
+      });
+    }
+
+    // ══════════════════════════════════════════════
+    //  COMPARE PAGE RENDER
+    // ══════════════════════════════════════════════
+    function selectComparePatient(pid) {
+      currentComparePatient = pid;
+      ['A', 'B', 'C'].forEach(id => {
+        const t = document.getElementById(`ctab-${id}`);
+        t.className = 'patient-tab';
+        if (id === pid) {
+          const map = { A: 'active-a', B: 'active-b', C: 'active-c' };
+          t.classList.add(map[id]);
+        }
+      });
+      renderComparePage(pid);
+    }
+
+    function renderComparePage(pid) {
+      const ref = PATIENTS[pid];
+      const user = userAnalysis;
+      const u = JSON.parse(localStorage.getItem('cognivara_user') || '{}');
+      const userName = u.name ? u.name.split(' ')[0] : 'You';
+      const getLast = arr => Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null;
+
+      // Delta cards
+      const userScore = user ? user.riskScore : 0;
+      const refScore = ref.riskScore;
+      const delta = userScore - refScore;
+      const userCsi = user ? (user.csiScore ?? user.indices?.cog ?? getLast(user.csi) ?? getLast(user.cog)) : null;
+      const refCsi = ref.csiScore ?? ref.indices?.cog ?? getLast(ref.cog);
+      const csiDelta = userCsi !== null ? (userCsi - refCsi) : null;
+
+      document.getElementById('cd-user-score').textContent = user ? userScore : '—';
+      document.getElementById('cd-ref-score').textContent = refScore;
+      document.getElementById('cd-ref-name').textContent = ref.name;
+      document.getElementById('cd-delta').textContent = (delta > 0 ? '+' : '') + (user ? delta : '—');
+      document.getElementById('cd-delta').style.color = delta > 0 ? '#ef4444' : delta < 0 ? '#10b981' : '#f59e0b';
+      document.getElementById('cd-delta-note').textContent = !user ? 'Complete a recording first' : delta > 5 ? 'You score higher (worse)' : delta < -5 ? 'You score lower (better)' : 'Similar risk profile';
+      document.getElementById('cd-user-csi').textContent = userCsi !== null ? userCsi : '—';
+      document.getElementById('cd-ref-csi').textContent = refCsi;
+      document.getElementById('cd-ref-csi-name').textContent = ref.name;
+      document.getElementById('cd-csi-delta').textContent = csiDelta === null ? '—' : ((csiDelta > 0 ? '+' : '') + csiDelta);
+      document.getElementById('cd-csi-delta').style.color = csiDelta === null ? '#8a9ab0' : csiDelta > 0 ? '#10b981' : csiDelta < 0 ? '#ef4444' : '#f59e0b';
+      document.getElementById('cd-csi-delta-note').textContent = csiDelta === null ? 'Complete a recording first' : csiDelta > 5 ? 'Higher complexity than reference' : csiDelta < -5 ? 'Lower complexity than reference' : 'Similar complexity profile';
+
+      // Column headers
+      document.getElementById('compare-user-name').textContent = userName;
+      document.getElementById('compare-user-score-big').textContent = user ? userScore : '—';
+      document.getElementById('compare-user-score-big').style.color = user ? (user.riskColor) : '#8a9ab0';
+
+      const ubadge = document.getElementById('compare-user-badge');
+      ubadge.className = `risk-status-badge ${user ? user.riskClass : 'moderate'}`;
+      ubadge.textContent = user ? user.riskLabel : 'No data';
+
+      document.getElementById('compare-ref-name').textContent = ref.name;
+      document.getElementById('compare-ref-type').textContent = `Reference Profile · ${ref.type}`;
+      document.getElementById('compare-ref-score-big').textContent = refScore;
+      document.getElementById('compare-ref-score-big').style.color = ref.riskColor;
+
+      const rbadge = document.getElementById('compare-ref-badge');
+      rbadge.className = `risk-status-badge ${ref.riskClass}`;
+      rbadge.textContent = ref.riskLabel;
+
+      const colHeader = document.getElementById('compare-ref-header');
+      colHeader.style.setProperty('--ref-col-color', ref.riskColor);
+      colHeader.style.background = '';
+
+      // Metrics
+      const metricDefs = [
+        { label: 'Emotional Stress', userVal: user ? getLast(user.emo) : null, refVal: getLast(ref.emo), color: '#ef4444', maxVal: 100 },
+        { label: 'Cognitive Complexity', userVal: user ? getLast(user.cog) : null, refVal: getLast(ref.cog), color: '#f59e0b', maxVal: 100 },
+        { label: 'Speech Hesitation', userVal: user ? getLast(user.hes) : null, refVal: getLast(ref.hes), color: '#8b5cf6', maxVal: 80 },
+        { label: 'Linguistic Efficiency', userVal: user ? getLast(user.lin) : null, refVal: getLast(ref.lin), color: '#18b09e', maxVal: 100 },
+        { label: 'Risk Accumulation', userVal: user ? getLast(user.risk) : null, refVal: getLast(ref.risk), color: '#1a6eb5', maxVal: 100 },
+      ];
+
+      function buildMetricCard(metricDef, isUser) {
+        const val = isUser ? metricDef.userVal : metricDef.refVal;
+        const pct = val !== null ? Math.round((val / metricDef.maxVal) * 100) : 0;
+        return `
+      <div class="compare-metric-row">
+        <div class="compare-metric-label">${metricDef.label}</div>
+        <div class="compare-bars">
+          <div class="compare-bar-row">
+            <div class="compare-bar-label">${isUser ? userName : ref.name}</div>
+            <div class="compare-bar-track">
+              <div class="compare-bar-fill" style="width:${val !== null ? pct : 0}%; background:${metricDef.color};"></div>
+            </div>
+            <div class="compare-bar-val" style="color:${metricDef.color};">${val !== null ? val : '—'}</div>
+          </div>
+        </div>
+      </div>`;
+      }
+
+      document.getElementById('compare-user-metrics').innerHTML = metricDefs.map(m => buildMetricCard(m, true)).join('');
+      document.getElementById('compare-ref-metrics').innerHTML = metricDefs.map(m => buildMetricCard(m, false)).join('');
+
+      // Transcripts
+      if (allTranscripts.length > 0) {
+        const txHtml = allTranscripts.map((t, i) =>
+          `<div style="margin-bottom:10px;"><strong>Session ${i + 1}:</strong> ${t.text || '<em>No speech detected</em>'}</div>`
+        ).join('');
+        document.getElementById('compare-user-transcript').innerHTML = txHtml;
+      } else {
+        document.getElementById('compare-user-transcript').innerHTML = '<em>No recordings yet. Complete 3 sessions to see your transcript.</em>';
+      }
+      document.getElementById('compare-ref-transcript').innerHTML = `<em>${ref.transcriptNote}</em>`;
+
+      // AI insight
+      let insightText = '';
+      if (!user) {
+        insightText = `Comparing against ${ref.name} (${ref.type}): This reference profile scores ${refScore}/100. Complete a recording to see your personal comparison.`;
+      } else {
+        const diff = Math.abs(delta);
+        const direction = delta > 0 ? 'higher' : 'lower';
+        if (diff <= 8) {
+          insightText = `Your risk profile is closely aligned with ${ref.name} (${ref.type}). Your score of ${userScore} vs their ${refScore} — a difference of only ${diff} points — suggests comparable cognitive biomarker patterns. ${ref.type === 'Stable' ? 'This alignment with the stable reference is a positive indicator.' : ref.type === 'Worsening' ? 'Close alignment with the worsening profile warrants attention.' : 'Your trajectory appears similar to the recovery profile.'}`;
+        } else if (delta > 0) {
+          insightText = `Your score of ${userScore} is ${diff} points ${direction} than ${ref.name} (${refScore}). ${ref.type === 'Stable' ? 'This elevated score compared to the stable reference may indicate developing cognitive stress markers.' : 'Both profiles show elevated markers, though yours are somewhat more pronounced.'}`;
+        } else {
+          insightText = `Your score of ${userScore} is ${diff} points ${direction} than ${ref.name} (${refScore}). ${ref.type === 'Stable' ? 'Your profile aligns favorably with the stable reference — strong indicator of healthy cognitive speech patterns.' : 'Despite being lower than this reference, continued monitoring is still recommended.'}`;
+        }
+      }
+      document.getElementById('compare-insight-text').textContent = insightText;
+      document.getElementById('compare-insight-meta').textContent = `Comparing you vs ${ref.name} · Not a clinical diagnosis · For investigational use only`;
+    }
+
+    // ══════════════════════════════════════════════
+    //  RECORDING + LIVE TRANSCRIPT
+    // ══════════════════════════════════════════════
+    let isRecording = false, timerInterval = null, currentStep = 1, timeLeft = 30, completedSteps = 0;
+    let mediaRecorder = null, recordedChunks = [], mediaStream = null;
+    let recognition = null, sessionTranscript = '';
+    let liveTranscriptSnapshot = '';
+    let mediaMimeType = 'audio/webm';
+    let pendingTranscriptions = {};
+    const USE_BROWSER_SPEECH_RECOGNITION = true;
+
+    function releaseMicrophone() {
+      try {
+        if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+      } catch (e) { }
+      mediaStream = null;
+    }
+
+    async function ensureMicrophoneAccess() {
+      if (mediaStream && mediaStream.getTracks().some(t => t.readyState === 'live')) {
+        return mediaStream;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('This browser does not support microphone access');
+      }
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      return mediaStream;
+    }
+
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return false;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            sessionTranscript += t + ' ';
+          } else {
+            interim = t;
+          }
+        }
+        liveTranscriptSnapshot = (sessionTranscript + interim).trim();
+        updateTranscriptUI(liveTranscriptSnapshot);
+      };
+      recognition.onerror = (e) => {
+        // Keep real capture only; do not inject demo transcript.
+        if (e.error !== 'aborted') {
+          console.warn('SpeechRecognition error:', e.error);
+        }
+      };
+      recognition.onend = () => {
+        // Keep recognition alive through the full recording interval.
+        if (isRecording) {
+          setTimeout(() => {
+            if (!isRecording) return;
+            try { recognition.start(); } catch (err) { }
+          }, 120);
+        }
+      };
+      return true;
+    }
+
+    function updateTranscriptUI(text) {
+      const el = document.getElementById('transcript-text');
+      el.innerHTML = `<span class="has-text">${text}</span><span class="transcript-cursor"></span>`;
+    }
+
+    async function uploadSessionForFeatureExtraction(blob, sessionId, transcriptText) {
+      if (!blob) return null;
+
+      const getApiBaseLocal = () => {
+        if (window.location.protocol === 'file:') return 'http://localhost:3000';
+        return window.location.origin.includes('3000') ? window.location.origin : 'http://localhost:3000';
+      };
+
+      try {
+        const endpoint = `${getApiBaseLocal()}/transcribe`;
+        const fd = new FormData();
+        fd.append('audio', blob, `session-${sessionId}.webm`);
+        // Just upload it and print result for now
+        const resp = await fetch(endpoint, { method: 'POST', body: fd });
+        let jd = {};
+        try { jd = await resp.json(); } catch (e) { }
+
+        if (resp.ok) {
+          console.log('Successfully saved recording to backend:', jd);
+          // Update transcript with high-quality whisper transcript if available
+          if (jd && jd.transcription) {
+            // Update allTranscripts
+            const txItem = allTranscripts.find(t => t.session === sessionId);
+            if (txItem) {
+              txItem.text = jd.transcription;
+            }
+          }
+          return jd;
+        }
+        throw new Error(jd.error || `HTTP ${resp.status}`);
+      } catch (e) {
+        console.warn('Session upload to Express /transcribe failed (check if server.js is running):', e);
+        return { skipped: true, error: e.message };
+      }
+    }
+
+    function encodePcm16Wav(samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      const writeStr = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true); // PCM chunk size
+      view.setUint16(20, 1, true); // PCM format
+      view.setUint16(22, 1, true); // mono
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true); // byte rate
+      view.setUint16(32, 2, true); // block align
+      view.setUint16(34, 16, true); // bits per sample
+      writeStr(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        offset += 2;
+      }
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function downsampleFloat32(input, inputRate, outputRate) {
+      if (outputRate >= inputRate) return input;
+      const ratio = inputRate / outputRate;
+      const outLength = Math.round(input.length / ratio);
+      const output = new Float32Array(outLength);
+      let pos = 0;
+      for (let i = 0; i < outLength; i++) {
+        const nextPos = Math.round((i + 1) * ratio);
+        let sum = 0;
+        let count = 0;
+        while (pos < nextPos && pos < input.length) {
+          sum += input[pos++];
+          count++;
+        }
+        output[i] = count > 0 ? (sum / count) : 0;
+      }
+      return output;
+    }
+
+    async function convertRecordedBlobToWav(blob) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error('AudioContext not available');
+      const ac = new AC();
+      try {
+        const arr = await blob.arrayBuffer();
+        const audioBuffer = await ac.decodeAudioData(arr.slice(0));
+        const channels = audioBuffer.numberOfChannels;
+        const len = audioBuffer.length;
+
+        // Mix down to mono for STT stability.
+        const mono = new Float32Array(len);
+        for (let ch = 0; ch < channels; ch++) {
+          const data = audioBuffer.getChannelData(ch);
+          for (let i = 0; i < len; i++) mono[i] += data[i] / channels;
+        }
+
+        const targetRate = 16000;
+        const resampled = downsampleFloat32(mono, audioBuffer.sampleRate, targetRate);
+        return encodePcm16Wav(resampled, targetRate);
+      } finally {
+        try { await ac.close(); } catch (e) { }
+      }
+    }
+
+    function isLoggedIn() { return !!localStorage.getItem('cognivara_user'); }
+
+    function scrollToRecord(e) {
+      if (e) e.preventDefault();
+      if (!isLoggedIn()) { showLogin(); return; }
+      showHomeAndRecord();
+      updateNav('nav-record');
+      setTimeout(() => document.getElementById('recording').scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+
+    function toggleRecord() {
+      if (!isLoggedIn()) { showLogin(); return; }
+      if (completedSteps >= 3) return; // guard — use startNewRecording() to reset
+      if (!isRecording) startRecording();
+      else { clearInterval(timerInterval); stopRecording(); }
+    }
+
+    function startNewRecording() {
+      // Full reset of recording state
+      if (isRecording) { clearInterval(timerInterval); stopRecording(); }
+      completedSteps = 0;
+      currentStep = 1;
+      allTranscripts = [];
+      userAnalysis = null;
+      sessionTranscript = '';
+      // Reset UI
+      for (let i = 1; i <= 3; i++) {
+        const s = document.getElementById(`step-${i}`);
+        s.className = 'baseline-step' + (i === 1 ? ' active' : '');
+        s.innerHTML = `<div class="step-dot"></div>Recording ${i} of 3`;
+      }
+      document.getElementById('timer').textContent = '0:30';
+      document.getElementById('timer').style.letterSpacing = '';
+      document.getElementById('progress-bar').style.width = '0%';
+      document.getElementById('record-label').textContent = 'Tap to Record';
+      document.getElementById('timer-label').textContent = 'Speak naturally — describe your day';
+      document.getElementById('baseline-established').classList.remove('show');
+      document.getElementById('session-transcript-card').classList.remove('show');
+      document.getElementById('redo-btn').classList.remove('show');
+      document.getElementById('all-transcripts').style.display = 'none';
+      document.getElementById('all-transcripts-content').innerHTML = '';
+      document.getElementById('compare-float-btn').classList.remove('show');
+      // Navigate to recording section
+      hideAllPages();
+      updateNav('nav-record');
+      document.getElementById('hero-section').style.display = 'block';
+      document.getElementById('recording-section').style.display = 'block';
+      setTimeout(() => document.getElementById('recording').scrollIntoView({ behavior: 'smooth' }), 100);
+    }
+
+    function toggleInfo(id) {
+      // Close all other tooltips first
+      document.querySelectorAll('.info-tooltip.show').forEach(el => {
+        if (el.id !== id) el.classList.remove('show');
+      });
+      document.getElementById(id).classList.toggle('show');
+    }
+
+    // Close tooltips on outside click
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.info-icon-wrap')) {
+        document.querySelectorAll('.info-tooltip.show').forEach(el => el.classList.remove('show'));
+      }
+    });
+
+    function startRecording() {
+      isRecording = true;
+      timeLeft = 30;
+      sessionTranscript = '';
+      liveTranscriptSnapshot = '';
+      // Hide previous session transcript card while recording
+      document.getElementById('session-transcript-card').classList.remove('show');
+      document.getElementById('redo-btn').classList.remove('show');
+      document.getElementById('transcript-box').style.display = 'block';
+      document.getElementById('transcript-text').innerHTML = '<em>Listening… speak naturally</em><span class="transcript-cursor"></span>';
+
+      document.getElementById('record-btn').classList.add('recording');
+      document.getElementById('record-ring').classList.add('active');
+      document.getElementById('record-ring2').classList.add('active');
+      document.getElementById('mic-idle').style.display = 'none';
+      document.getElementById('mic-active').style.display = 'block';
+      document.getElementById('record-label').textContent = 'Tap to Stop';
+      document.getElementById('record-label').classList.add('on');
+      document.getElementById('timer').classList.add('active');
+      document.getElementById(`step-${currentStep}`).classList.add('active');
+
+      // Optional browser speech recognition is disabled by default to avoid repeated permission prompts.
+      if (USE_BROWSER_SPEECH_RECOGNITION) {
+        const hasSR = initSpeechRecognition();
+        if (hasSR && recognition) {
+          try {
+            recognition.start();
+          } catch (e) { }
+        }
+      }
+
+      // Capture raw audio via one persistent microphone stream so permission is requested only once.
+      ensureMicrophoneAccess().then(stream => {
+        try {
+          const preferred = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/mp4',
+            'audio/ogg;codecs=opus'
+          ];
+          const chosen = preferred.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+          mediaMimeType = chosen || 'audio/webm';
+          mediaRecorder = chosen ? new MediaRecorder(stream, { mimeType: chosen }) : new MediaRecorder(stream);
+        } catch (e) {
+          mediaRecorder = null;
+          return;
+        }
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = ev => { if (ev.data && ev.data.size) recordedChunks.push(ev.data); };
+        mediaRecorder.start(250);
+      }).catch(e => {
+        mediaRecorder = null;
+        alert(`Microphone access failed: ${e.message}`);
+      });
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = `0:${timeLeft.toString().padStart(2, '0')}`;
+        document.getElementById('progress-bar').style.width = `${((30 - timeLeft) / 30) * 100}%`;
+        if (timeLeft <= 0) { clearInterval(timerInterval); stopRecording(); }
+      }, 1000);
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      if (recognition) { try { recognition.stop(); } catch (e) { } }
+
+      document.getElementById('record-btn').classList.remove('recording');
+      document.getElementById('record-ring').classList.remove('active');
+      document.getElementById('record-ring2').classList.remove('active');
+      document.getElementById('mic-idle').style.display = 'block';
+      document.getElementById('mic-active').style.display = 'none';
+      document.getElementById('record-label').classList.remove('on');
+      document.getElementById('timer').classList.remove('active');
+
+      const sessionId = currentStep;
+      // Save transcript from actual speech recognition only (no demo sentence injection)
+      const finalText = sessionTranscript.trim() || liveTranscriptSnapshot || 'No speech recognized in-browser.';
+      allTranscripts.push({ session: sessionId, text: finalText });
+
+      // Hide live transcript box
+      document.getElementById('transcript-box').style.display = 'none';
+
+      // Show session transcript card with REAL spoken text
+      const wordCount = finalText.split(' ').filter(w => w.length > 0).length;
+      const stc = document.getElementById('session-transcript-card');
+      document.getElementById('stc-session-badge').textContent = `Session ${sessionId}`;
+      document.getElementById('stc-text').textContent = finalText;
+      document.getElementById('stc-words').textContent = `${wordCount} words`;
+      stc.classList.add('show');
+
+      // Upload each recorded session to the FastAPI analytics backend.
+      let transcriptionPromise = Promise.resolve();
+      if (mediaRecorder || (recordedChunks && recordedChunks.length > 0)) {
+        transcriptionPromise = (async () => {
+          try {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+              try { mediaRecorder.requestData(); } catch (e) { }
+              await new Promise(resolve => {
+                const done = () => resolve();
+                mediaRecorder.addEventListener('stop', done, { once: true });
+                try { mediaRecorder.stop(); } catch (e) { resolve(); }
+                setTimeout(resolve, 3000);
+              });
+            }
+            if (!recordedChunks || recordedChunks.length === 0) return;
+            const rawBlob = new Blob(recordedChunks, { type: mediaMimeType || 'audio/webm' });
+            const wavBlob = await convertRecordedBlobToWav(rawBlob);
+            await uploadSessionForFeatureExtraction(wavBlob, sessionId, finalText);
+          } catch (e) {
+            console.warn('Session analytics upload failed', e);
+            const fallbackText = allTranscripts.find(x => x.session === sessionId)?.text || '';
+            document.getElementById('stc-text').textContent = fallbackText || `Session upload failed: ${e.message}`;
+            document.getElementById('stc-words').textContent = fallbackText ? `${fallbackText.split(' ').filter(w => w).length} words` : '0 words';
+          } finally {
+            // Keep microphone stream alive across sessions to avoid repeated permission prompts.
+            recordedChunks = [];
+            mediaRecorder = null;
+          }
+        })();
+      }
+      pendingTranscriptions[sessionId] = transcriptionPromise.finally(() => { delete pendingTranscriptions[sessionId]; });
+
+      const step = document.getElementById(`step-${sessionId}`);
+      step.classList.remove('active');
+      step.classList.add('completed');
+      step.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Recording ${sessionId} of 3`;
+      completedSteps++;
+      currentStep++;
+
+      // Show redo button (only if not all 3 done yet, so user can redo last session)
+      if (completedSteps < 3) {
+        document.getElementById('redo-btn').classList.add('show');
+      }
+
+      if (completedSteps < 3) {
+        document.getElementById('timer').textContent = '0:30';
+        document.getElementById('progress-bar').style.width = '0%';
+        document.getElementById('record-label').textContent = 'Tap to Record';
+        document.getElementById('timer-label').textContent = `Recording ${currentStep} of 3 — Describe a recent memory`;
+      } else {
+        document.getElementById('progress-bar').style.width = '100%';
+        document.getElementById('timer').textContent = '✓';
+        document.getElementById('timer').style.letterSpacing = '0';
+        document.getElementById('timer-label').textContent = 'Analyzing speech biomarkers…';
+        document.getElementById('record-label').textContent = 'Complete';
+        document.getElementById('baseline-established').classList.add('show');
+        document.getElementById('transcript-box').style.display = 'none';
+
+        Promise.resolve()
+          .then(() => Promise.all(Object.values(pendingTranscriptions)))
+          .then(() => {
+            const atc = document.getElementById('all-transcripts-content');
+            atc.innerHTML = allTranscripts.map(t =>
+              `<div class="transcript-session-header">Session ${t.session}</div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">${t.text}</div>`
+            ).join('');
+            document.getElementById('all-transcripts').style.display = 'block';
+            return computeUserAnalysis(allTranscripts);
+          })
+          .then(result => {
+            userAnalysis = result;
+            renderUserDashboard(userAnalysis);
+
+            // Auto-match the closest reference profile to your latest analyzed metrics.
+            const uidx = {
+              emo: userAnalysis.emo[userAnalysis.emo.length - 1],
+              cog: userAnalysis.cog[userAnalysis.cog.length - 1],
+              hes: userAnalysis.hes[userAnalysis.hes.length - 1],
+              lin: userAnalysis.lin[userAnalysis.lin.length - 1],
+              risk: userAnalysis.risk[userAnalysis.risk.length - 1]
+            };
+            let best = 'A';
+            let bestDist = Infinity;
+            ['A', 'B', 'C'].forEach(pid => {
+              const p = PATIENTS[pid];
+              const pidx = {
+                emo: p.emo[p.emo.length - 1],
+                cog: p.cog[p.cog.length - 1],
+                hes: p.hes[p.hes.length - 1],
+                lin: p.lin[p.lin.length - 1],
+                risk: p.risk[p.risk.length - 1]
+              };
+              const d = Math.sqrt(
+                Math.pow(uidx.emo - pidx.emo, 2) +
+                Math.pow(uidx.cog - pidx.cog, 2) +
+                Math.pow(uidx.hes - pidx.hes, 2) +
+                Math.pow(uidx.lin - pidx.lin, 2) +
+                Math.pow(uidx.risk - pidx.risk, 2)
+              );
+              if (d < bestDist) {
+                bestDist = d;
+                best = pid;
+              }
+            });
+            currentComparePatient = best;
+            renderComparePage(currentComparePatient);
+
+            setTimeout(showDashboard, 2200);
+          })
+          .catch(err => {
+            console.error('Analysis failed', err);
+            userAnalysis = null;
+            alert(`Analysis failed: ${err.message}`);
+          });
+      }
+    }
+
+    function redoLastRecording() {
+      if (isRecording) return;
+      // Roll back the last completed step
+      completedSteps--;
+      currentStep--;
+      // Remove from transcripts array
+      allTranscripts = allTranscripts.filter(t => t.session !== currentStep);
+      // Reset the step pill
+      const step = document.getElementById(`step-${currentStep}`);
+      step.classList.remove('completed');
+      step.classList.add('active');
+      step.innerHTML = `<div class="step-dot"></div>Recording ${currentStep} of 3`;
+      // Reset timer & progress
+      document.getElementById('timer').textContent = '0:30';
+      document.getElementById('timer').style.letterSpacing = '';
+      document.getElementById('progress-bar').style.width = '0%';
+      document.getElementById('record-label').textContent = 'Tap to Record';
+      document.getElementById('timer-label').textContent = `Re-recording session ${currentStep} — speak naturally`;
+      // Hide redo button and session transcript card
+      document.getElementById('redo-btn').classList.remove('show');
+      document.getElementById('session-transcript-card').classList.remove('show');
+      document.getElementById('baseline-established').classList.remove('show');
+    }
+
+    // ══════════════════════════════════════════════
+    //  DASHBOARD
+    // ══════════════════════════════════════════════
+    function showDashboard() {
+      hideAllPages();
+      updateNav('nav-dash');
+      document.getElementById('dashboard').classList.add('show');
+      document.getElementById('compare-float-btn').classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        if (userAnalysis) renderUserDashboard(userAnalysis);
+        generateWaveform();
+        generateMarkers();
+        document.querySelectorAll('.reveal').forEach((el, i) => {
+          setTimeout(() => el.classList.add('visible'), i * 80);
+        });
+      }, 400);
+    }
+
+    function showDashboardNav() {
+      if (document.getElementById('dashboard').classList.contains('show')) return;
+      if (userAnalysis) showDashboard();
+    }
+
+    // ══════════════════════════════════════════════
+    //  PAGE NAVIGATION
+    // ══════════════════════════════════════════════
+    function updateNav(activeId) {
+      document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+      if (activeId) {
+        const el = document.getElementById(activeId);
+        if (el) el.classList.add('active');
+      }
+    }
+
+    function syncHomeRecordNavByScroll() {
+      const heroSection = document.getElementById('hero-section');
+      const recordingSection = document.getElementById('recording-section');
+      const dashboard = document.getElementById('dashboard');
+      const profile = document.getElementById('profile-page');
+      const settings = document.getElementById('settings-page');
+      const compare = document.getElementById('compare-page');
+      const recording = document.getElementById('recording');
+
+      // Only auto-sync when the home+record layout is visible.
+      if (!heroSection || !recordingSection || !recording) return;
+      if (heroSection.style.display === 'none' || recordingSection.style.display === 'none') return;
+
+      // Do not override explicit nav states for other pages.
+      if (dashboard.classList.contains('show')) return;
+      if (profile.style.display === 'block' || settings.style.display === 'block' || compare.style.display === 'block') return;
+
+      const nav = document.querySelector('nav');
+      const navBottom = (nav ? nav.getBoundingClientRect().bottom : 0) + 24;
+      const recordingTop = recording.getBoundingClientRect().top;
+      updateNav(recordingTop <= navBottom ? 'nav-record' : 'nav-home');
+    }
+
+    function hideAllPages() {
+      updateNav(null);
+      document.getElementById('hero-section').style.display = 'none';
+      document.getElementById('recording-section').style.display = 'none';
+      document.getElementById('dashboard').classList.remove('show');
+      document.getElementById('profile-page').style.display = 'none';
+      document.getElementById('settings-page').style.display = 'none';
+      document.getElementById('compare-page').style.display = 'none';
+    }
+
+    function showHomeAndRecord() {
+      hideAllPages();
+      document.getElementById('hero-section').style.display = 'block';
+      document.getElementById('recording-section').style.display = 'block';
+      document.getElementById('compare-float-btn').classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      syncHomeRecordNavByScroll();
+    }
+
+    function goHome() {
+      hideAllPages();
+      updateNav('nav-home');
+      document.getElementById('hero-section').style.display = 'block';
+      document.getElementById('recording-section').style.display = 'block';
+      if (userAnalysis) document.getElementById('compare-float-btn').classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      syncHomeRecordNavByScroll();
+    }
+
+    function goBack() {
+      if (userAnalysis) {
+        showDashboard();
+      } else {
+        goHome();
+      }
+    }
+
+    function showProfilePage() {
+      hideAllPages();
+      const user = JSON.parse(localStorage.getItem('cognivara_user') || '{}');
+      const parts = (user.name || 'U').split(' ').filter(p => p);
+      const initials = parts.map(p => p[0].toUpperCase()).slice(0, 2).join('');
+      const avatar = document.getElementById('profile-avatar-large');
+      avatar.textContent = initials;
+      document.getElementById('profile-name-large').textContent = user.name || '—';
+      document.getElementById('profile-email-large').textContent = user.email || '—';
+      let ageGroup = '—';
+      if (user.age) {
+        const a = parseInt(user.age);
+        if (a < 26) ageGroup = '18–25';
+        else if (a < 41) ageGroup = '26–40';
+        else if (a < 61) ageGroup = '41–60';
+        else ageGroup = '60+';
+      }
+      document.getElementById('profile-age-large').textContent = ageGroup;
+      document.getElementById('profile-start-date').textContent = user.startDate || 'Feb 1, 2026';
+      document.getElementById('profile-start-date').textContent = user.startDate || 'Feb 1, 2026';
+      document.getElementById('profile-risk-large').textContent = userAnalysis ? userAnalysis.riskLabel : 'No analysis yet';
+      document.getElementById('profile-risk-large').style.color = userAnalysis ? userAnalysis.riskColor : '#8a9ab0';
+      document.getElementById('profile-page').style.display = 'block';
+      document.getElementById('profile-dropdown').classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showComparePage() {
+      hideAllPages();
+      document.getElementById('compare-page').style.display = 'block';
+      document.getElementById('compare-float-btn').classList.remove('show');
+      document.getElementById('profile-dropdown').classList.remove('show');
+      selectComparePatient(currentComparePatient);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showSettingsPage() {
+      hideAllPages();
+      const user = JSON.parse(localStorage.getItem('cognivara_user') || '{}');
+      document.getElementById('settings-name').value = user.name || '';
+      document.getElementById('settings-email').value = user.email || '';
+      document.getElementById('settings-age').value = user.age || '';
+      document.getElementById('settings-page').style.display = 'block';
+      document.getElementById('profile-dropdown').classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function saveSettings() {
+      const user = {
+        name: document.getElementById('settings-name').value.trim(),
+        email: document.getElementById('settings-email').value.trim(),
+        age: document.getElementById('settings-age').value.trim()
+      };
+      if (!user.name || !user.email || !user.age) { alert('All fields required'); return; }
+      localStorage.setItem('cognivara_user', JSON.stringify(user));
+      updateUserUI();
+      goBack();
+    }
+
+    // ══════════════════════════════════════════════
+    //  USER AUTH
+    // ══════════════════════════════════════════════
+    function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
+    function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
+
+    function submitSignup(e) {
+      e.preventDefault();
+      const user = {
+        name: document.getElementById('input-name').value.trim(),
+        email: document.getElementById('input-email').value.trim(),
+        age: document.getElementById('input-age').value.trim()
+      };
+      if (!user.name || !user.email || !user.age) return;
+      localStorage.setItem('cognivara_user', JSON.stringify(user));
+      document.getElementById('login-form').reset();
+      hideLogin();
+      updateUserUI();
+      // Refresh the page
+      window.location.reload();
+    }
+
+    function updateUserUI() {
+      const u = localStorage.getItem('cognivara_user');
+      const recordBtn = document.getElementById('record-btn');
+      const avatar = document.getElementById('profile-btn');
+      if (u) {
+        const user = JSON.parse(u);
+        document.getElementById('login-btn').style.display = 'none';
+        if (avatar) {
+          avatar.style.display = 'flex';
+          const parts = user.name.split(' ').filter(p => p);
+          const initials = parts.map(p => p[0].toUpperCase()).slice(0, 2).join('');
+          avatar.textContent = initials;
+        }
+        if (recordBtn) { recordBtn.classList.remove('disabled'); recordBtn.disabled = false; }
+      } else {
+        document.getElementById('login-btn').style.display = 'inline-block';
+        if (avatar) avatar.style.display = 'none';
+        document.getElementById('profile-dropdown').classList.remove('show');
+        if (recordBtn) { recordBtn.classList.add('disabled'); recordBtn.disabled = true; }
+      }
+    }
+
+    function logout() {
+      releaseMicrophone();
+      localStorage.removeItem('cognivara_user');
+      userAnalysis = null;
+      allTranscripts = [];
+      completedSteps = 0;
+      currentStep = 1;
+      updateUserUI();
+      document.getElementById('profile-dropdown').classList.remove('show');
+      document.getElementById('compare-float-btn').classList.remove('show');
+      window.location.reload();
+    }
+
+    function toggleProfile() {
+      document.getElementById('profile-dropdown').classList.toggle('show');
+    }
+
+    // ══════════════════════════════════════════════
+    //  WAVEFORM
+    // ══════════════════════════════════════════════
+    function generateWaveform() {
+      const svg = document.getElementById('waveform-svg');
+      if (!svg) return;
+      let html = '';
+      for (let i = 0; i < 120; i++) {
+        const x = (i / 120) * 800;
+        const seed = Math.sin(i * 0.4) * 0.5 + Math.sin(i * 0.13) * 0.3 + Math.random() * 0.2;
+        const h = 8 + Math.abs(seed) * 48; const y = 40 - h / 2;
+        let c = '#93c5e8';
+        if (i > 16 && i < 20) c = '#fde68a';
+        if (i > 28 && i < 34) c = '#fca5a5';
+        if (i > 42 && i < 46) c = '#fca5a5';
+        if (i > 54 && i < 58) c = '#fdba74';
+        if (i > 64 && i < 68) c = '#6ee7da';
+        html += `<rect x="${x}" y="${y}" width="4" height="${h}" rx="2" fill="${c}" opacity="0.9"/>`;
+      }
+      svg.innerHTML = html;
+    }
+
+    function generateMarkers() {
+      const c = document.getElementById('markers');
+      if (!c) return;
+      c.innerHTML = '';
+      [{ pct: 23, label: '00:07 – Pitch Spike', color: '#1a6eb5' },
+      { pct: 40, label: '00:12 – Elevated Stress', color: '#ef4444' },
+      { pct: 60, label: '00:18 – Hesitation', color: '#f59e0b' },
+      { pct: 76, label: '00:23 – Negative Tone', color: '#f97316' },
+      { pct: 90, label: '00:27 – Reduced Pitch Variation', color: '#18b09e' }]
+        .forEach(m => {
+          const d = document.createElement('div');
+          d.className = 'marker'; d.style.left = `${m.pct}%`;
+          d.innerHTML = `<div class="marker-tooltip">${m.label}</div><div class="marker-line"></div><div class="marker-dot" style="background:${m.color};"></div>`;
+          c.appendChild(d);
+        });
+      const tl = document.getElementById('waveform-timeline');
+      if (tl) {
+        tl.innerHTML = '';
+        ['0:00', '0:05', '0:10', '0:15', '0:20', '0:25', '0:30'].forEach((t, i) => {
+          const el = document.createElement('div');
+          el.className = 'timeline-tick'; el.style.left = `${(i / 6) * 100}%`;
+          el.innerHTML = `<span class="tick-time">${t}</span>`;
+          tl.appendChild(el);
+        });
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    //  SCROLL REVEAL
+    // ══════════════════════════════════════════════
+    function initReveal() {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+    }
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#profile-btn') && !e.target.closest('#profile-dropdown')) {
+        document.getElementById('profile-dropdown').classList.remove('show');
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initReveal();
+      updateUserUI();
+      // If user is logged in, go home; if not, show home
+      goHome();
+    });
+
+    window.addEventListener('scroll', syncHomeRecordNavByScroll, { passive: true });
+    window.addEventListener('resize', syncHomeRecordNavByScroll);
+
+    window.addEventListener('beforeunload', () => {
+      releaseMicrophone();
+    });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // 3D Neural Network Background
+    function init3DBackground() {
+      const canvas = document.getElementById('bg-canvas');
+      if (!canvas || !window.THREE) return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 250;
+
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      const particleCount = 200;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount * 3; i++) {
+        positions[i] = (Math.random() - 0.5) * 600;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const material = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 3.5,
+        transparent: true,
+        opacity: 0.95,
+      });
+
+      const particles = new THREE.Points(geometry, material);
+
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0x3b82f6,
+        transparent: true,
+        opacity: 0.15
+      });
+
+      const lineGeometry = new THREE.BufferGeometry();
+      const linePositions = [];
+
+      for (let i = 0; i < particleCount; i++) {
+        for (let j = i + 1; j < particleCount; j++) {
+          const idx1 = i * 3;
+          const idx2 = j * 3;
+          const dx = positions[idx1] - positions[idx2];
+          const dy = positions[idx1 + 1] - positions[idx2 + 1];
+          const dz = positions[idx1 + 2] - positions[idx2 + 2];
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist < 80) {
+            linePositions.push(
+              positions[idx1], positions[idx1 + 1], positions[idx1 + 2],
+              positions[idx2], positions[idx2 + 1], positions[idx2 + 2]
+            );
+          }
+        }
+      }
+
+      lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+      const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+
+      const group = new THREE.Group();
+      group.add(particles);
+      group.add(lines);
+      scene.add(group);
+
+      let mouseX = 0;
+      let mouseY = 0;
+      document.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX - window.innerWidth / 2) * 0.05;
+        mouseY = (e.clientY - window.innerHeight / 2) * 0.05;
+      });
+
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const elapsedTime = clock.getElapsedTime();
+
+        group.rotation.y += 0.005;
+        group.rotation.x += 0.0025;
+
+        camera.position.x += (mouseX - camera.position.x) * 0.05;
+        camera.position.y += (-mouseY - camera.position.y) * 0.05;
+        camera.lookAt(scene.position);
+
+        material.size = 2 + Math.sin(elapsedTime * 2) * 0.5;
+
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      animate();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init3DBackground();
+    });
+  </script>
+</body>
+
+</html>

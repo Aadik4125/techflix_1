@@ -1,0 +1,273 @@
+<!-- ══════════ DASHBOARD ══════════ -->
+<section id="dashboard" style="padding-top:32px;">
+    <div style="margin-bottom:40px;" class="reveal">
+        <div class="section-eyebrow">Cognitive Assessment</div>
+        <h2 class="section-title">Your Cognitive Risk Profile</h2>
+        <p class="section-sub" id="dash-sub">Based on 3 baseline recordings — Updated today</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- RISK SCORE CARD -->
+        <div class="risk-score-card reveal" id="risk-card">
+            <div class="score-gauge">
+                <svg viewBox="0 0 180 180">
+                    <circle class="gauge-bg" cx="90" cy="90" r="74" />
+                    <circle class="gauge-fill" id="gauge-circle" cx="90" cy="90" r="74" stroke="url(#gaugeGrad)"
+                        stroke-dasharray="465" stroke-dashoffset="465" />
+                    <defs>
+                        <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#f59e0b" id="grad-stop-1" />
+                            <stop offset="100%" stop-color="#ef4444" id="grad-stop-2" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="gauge-center">
+                    <div class="gauge-score" id="gauge-score-num" style="color:#f59e0b;">—</div>
+                    <div class="gauge-denom">/ 100</div>
+                </div>
+            </div>
+            <div class="risk-info">
+                <div style="margin-bottom:8px;">
+                    <span class="risk-status-badge moderate" id="risk-badge">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#f59e0b">
+                            <circle cx="12" cy="12" r="10" />
+                        </svg>
+                        <span id="risk-badge-text">Analysing…</span>
+                    </span>
+                    <span class="user-profile-badge" id="user-profile-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+                        </svg>
+                        <span id="user-badge-name">You</span>
+                    </span>
+                </div>
+                <h2>Cognitive Risk Score</h2>
+                <p id="risk-description">Analyzing your speech biomarkers…</p>
+                <div class="risk-delta" id="risk-delta"
+                    style="background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <polyline points="18 9 12 15 6 9" />
+                    </svg>
+                    <span id="risk-delta-text">Calculating…</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- WAVEFORM -->
+        <div class="waveform-card reveal">
+            <div class="waveform-header">
+                <div>
+                    <h3>Speech Analysis — Session 3</h3>
+                    <p>30-second recording · Biomarkers detected</p>
+                </div>
+                <div class="waveform-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#f59e0b;"></div>Stress
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#1a6eb5;"></div>Pitch
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#ef4444;"></div>Hesitation
+                    </div>
+                </div>
+            </div>
+            <div class="waveform-container">
+                <svg class="waveform-svg" viewBox="0 0 800 80" preserveAspectRatio="none" id="waveform-svg"></svg>
+                <div class="marker-container" id="markers"></div>
+            </div>
+            <div class="waveform-timeline" id="waveform-timeline"></div>
+        </div>
+
+        <!-- 5 TRAJECTORY GRAPHS -->
+        <div class="graphs-section reveal">
+            <div style="margin-bottom:16px;">
+                <div class="section-eyebrow">Longitudinal Biomarker Trajectories</div>
+                <div style="font-size:13px;color:var(--text-muted);">30-day trends across 5 core cognitive speech
+                    dimensions</div>
+            </div>
+            <div class="graphs-grid">
+                <div class="graph-card color-red">
+                    <div class="graph-card-label" style="color:#ef4444;">Emotional Stress</div>
+                    <div class="graph-card-title">Emotional Stress Trajectory</div>
+                    <div class="graph-card-desc">Shows how your stress tone changes over time</div>
+                    <div class="graph-card-current" id="g-emo-val" style="color:#ef4444;">—</div>
+                    <svg class="graph-svg" id="g-emo" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="graph-card color-amber">
+                    <div class="graph-card-label" style="color:#f59e0b;">Cognitive Complexity</div>
+                    <div class="graph-card-title">Cognitive Complexity Decline</div>
+                    <div class="graph-card-desc">Shows how complex and detailed your speech is</div>
+                    <div class="graph-card-current" id="g-cog-val" style="color:#f59e0b;">—</div>
+                    <svg class="graph-svg" id="g-cog" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="graph-card color-purple">
+                    <div class="graph-card-label" style="color:#8b5cf6;">Hesitation</div>
+                    <div class="graph-card-title">Speech Hesitation Escalation</div>
+                    <div class="graph-card-desc">Shows how often pauses and filler words appear</div>
+                    <div class="graph-card-current" id="g-hes-val" style="color:#8b5cf6;">—</div>
+                    <svg class="graph-svg" id="g-hes" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+                </div>
+            </div>
+            <div class="graphs-grid-bottom">
+                <div class="graph-card color-teal">
+                    <div class="graph-card-label" style="color:#18b09e;">Linguistic Efficiency</div>
+                    <div class="graph-card-title">Linguistic Efficiency Decline</div>
+                    <div class="graph-card-desc">Shows how much clear information your speech carries</div>
+                    <div class="graph-card-current" id="g-lin-val" style="color:#18b09e;">—</div>
+                    <svg class="graph-svg" id="g-lin" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+                </div>
+                <div class="graph-card color-blue">
+                    <div class="graph-card-label" style="color:#1a6eb5;">Risk Accumulation</div>
+                    <div class="graph-card-title">Risk Accumulation Curve</div>
+                    <div class="graph-card-desc">Overall risk trend compared with your baseline</div>
+                    <div class="graph-card-current" id="g-risk-val" style="color:#1a6eb5;">—</div>
+                    <svg class="graph-svg" id="g-risk" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI INSIGHT -->
+        <div class="insight-card reveal" style="grid-column:1/-1;">
+            <div class="insight-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+            </div>
+            <div style="flex:1;">
+                <div class="insight-label">AI Interpretation</div>
+                <p class="insight-text" id="insight-text">Analyzing your speech biomarkers...</p>
+                <div class="insight-footer">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span id="insight-meta">Generated today · Not a clinical diagnosis</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="insight-card reveal" style="grid-column:1/-1;">
+            <div class="insight-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 3v18M3 12h18" />
+                </svg>
+            </div>
+            <div style="flex:1;">
+                <div class="insight-label">Why This Score</div>
+                <p class="insight-text">Top contributing signals from your sessions:</p>
+                <div class="explain-list" id="explain-list">
+                    <div class="explain-item" id="explain-1">Analyzing lexical signals...</div>
+                    <div class="explain-item" id="explain-2">Analyzing fluency signals...</div>
+                    <div class="explain-item" id="explain-3">Analyzing risk aggregation...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DERIVED INDICES -->
+        <div class="indices-grid reveal">
+            <div class="index-card">
+                <div class="index-card-header">
+                    <div class="index-card-label">Emotional Stability Index</div>
+                    <div class="info-icon-wrap">
+                        <button class="info-icon-btn" onclick="toggleInfo('info-emo')"
+                            aria-label="What is Emotional Stability Index?">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                        </button>
+                        <div class="info-tooltip" id="info-emo">
+                            <div class="info-tooltip-title">Emotional Stability Index</div>
+                            <p>Measures how consistent and calm your emotional tone is across speech. A higher score
+                                means your voice shows steady, neutral-positive affect — a sign of low emotional stress.
+                                Sudden tone swings or heightened emotional volatility lower this score.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="index-value" id="idx-emo" style="color:#f59e0b;">—</div>
+                <div class="index-bar-wrap">
+                    <div class="index-bar" id="idx-emo-bar"
+                        style="background:linear-gradient(90deg,#f59e0b,#fbbf24); width:0%;"></div>
+                </div>
+                <div class="index-range"><span>0</span><span>100</span></div>
+            </div>
+            <div class="index-card">
+                <div class="index-card-header">
+                    <div class="index-card-label">Cognitive Complexity Index</div>
+                    <div class="info-icon-wrap">
+                        <button class="info-icon-btn" onclick="toggleInfo('info-cog')"
+                            aria-label="What is Cognitive Complexity Index?">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                        </button>
+                        <div class="info-tooltip" id="info-cog">
+                            <div class="info-tooltip-title">Cognitive Complexity Index</div>
+                            <p>Reflects the richness of your vocabulary and how well-structured your sentences are.
+                                Higher scores indicate diverse word choice and coherent, multi-clause sentences —
+                                markers of strong cognitive engagement. Declining scores may indicate word-finding
+                                difficulty or simplified speech patterns.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="index-value" id="idx-cog" style="color:#f59e0b;">—</div>
+                <div class="index-bar-wrap">
+                    <div class="index-bar" id="idx-cog-bar"
+                        style="background:linear-gradient(90deg,#f59e0b,#fbbf24); width:0%;"></div>
+                </div>
+                <div class="index-range"><span>0</span><span>100</span></div>
+            </div>
+            <div class="index-card">
+                <div class="index-card-header">
+                    <div class="index-card-label">Speech Fluency Index</div>
+                    <div class="info-icon-wrap">
+                        <button class="info-icon-btn" onclick="toggleInfo('info-flu')"
+                            aria-label="What is Speech Fluency Index?">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                        </button>
+                        <div class="info-tooltip" id="info-flu">
+                            <div class="info-tooltip-title">Speech Fluency Index</div>
+                            <p>Tracks the smoothness and continuity of your speech. It penalizes frequent pauses, filler
+                                words ("um", "uh", "like"), incomplete sentences, and mid-thought restarts. A high score
+                                means you spoke with confidence and flow — an indicator of healthy verbal processing
+                                speed.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="index-value" id="idx-flu" style="color:#ef4444;">—</div>
+                <div class="index-bar-wrap">
+                    <div class="index-bar" id="idx-flu-bar"
+                        style="background:linear-gradient(90deg,#ef4444,#f87171); width:0%;"></div>
+                </div>
+                <div class="index-range"><span>0</span><span>100</span></div>
+            </div>
+        </div>
+
+        <!-- RE-RECORD BUTTON (shown after analysis is complete) -->
+        <div style="grid-column:1/-1; text-align:center; padding-top:8px;" class="reveal">
+            <button class="rerecord-btn" id="rerecord-btn" onclick="startNewRecording()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-4" />
+                </svg>
+                Record New Session
+            </button>
+        </div>
+    </div>
+</section>
