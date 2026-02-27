@@ -62,6 +62,7 @@
     let backendStatusBase = null;
     let backendStatusBusy = false;
     let backendProbeFailures = 0;
+    let backendLastOkAt = 0;
 
     function getApiBase() {
       if (window.COGNIVARA_API_BASE && String(window.COGNIVARA_API_BASE).trim()) {
@@ -166,14 +167,22 @@
           const ok = await probeBackend(base);
           if (ok) {
             backendProbeFailures = 0;
+            backendLastOkAt = Date.now();
             backendStatusBase = base;
             setBackendStatus('online', `Backend: online (${backendHostLabel(base)})`, `Connected to ${base}`);
             return true;
           }
         }
         backendProbeFailures += 1;
-        if (backendProbeFailures >= 5 || force) {
+        const recentOk = backendLastOkAt > 0 && (Date.now() - backendLastOkAt) < (10 * 60 * 1000);
+        if (backendProbeFailures >= 8 || (force && !recentOk)) {
           setBackendStatus('offline', 'Backend: offline', 'FastAPI backend is not reachable');
+        } else if (backendStatusBase || recentOk) {
+          setBackendStatus(
+            'online',
+            `Backend: online (${backendHostLabel(backendStatusBase || 'known')})`,
+            'Backend is slow/busy. Retrying health checks.'
+          );
         } else {
           setBackendStatus('checking', 'Backend: checking', 'Backend response delayed; retrying');
         }
@@ -333,39 +342,40 @@
         .map(id => ({ id, data: currentRunSessionAnalytics[id] }))
         .filter(x => !!x.data);
       if (runSessionIds.length > 0 && runUploads.length === runSessionIds.length) {
-        const localBySession = new Map(
-          analysisTranscripts.map(t => [Number(t.session), localHeuristicAnalysis(t.text)])
-        );
+        let prevRisk = null;
         const perSession = runUploads.map(({ id, data }) => {
-          const local = localBySession.get(id) || localHeuristicAnalysis('');
-          const csiRaw = clampScore(data?.csi?.csi_score ?? data?.user_latest_csi_score ?? local.risk);
-          // Keep session metrics transcript-driven; use CSI as a bounded correction only.
-          const emo = clampScore(Math.round(local.emo * 0.95 + csiRaw * 0.05));
-          const cog = clampScore(Math.round(local.cog * 0.92 + (100 - csiRaw) * 0.08));
-          const hes = clampScore(Math.round(local.hes * 0.95 + csiRaw * 0.05));
-          const lin = clampScore(Math.round(local.lin * 0.94 + (100 - csiRaw) * 0.06));
-          const baseRisk = clampScore(Math.round(
-            emo * 0.33 +
-            hes * 0.27 +
-            (100 - cog) * 0.2 +
-            (100 - lin) * 0.2
-          ));
-          const csiDelta = csiRaw - 50;
-          const boundedAdj = Math.max(-6, Math.min(6, Math.round(csiDelta * 0.12)));
-          const risk = clampScore(baseRisk + boundedAdj);
+          const csiRaw = clampScore(data?.csi?.csi_score ?? data?.user_latest_csi_score ?? 50);
+          const driftRaw = Number(data?.drift?.overall_drift_score ?? 0);
+          const driftNorm = clampScore(Math.round((Math.max(0, Math.min(3.5, driftRaw)) / 3.5) * 100));
+
+          // Backend-driven risk: primarily inverse CSI, with drift as secondary signal.
+          let risk = clampScore(Math.round((100 - csiRaw) * 0.88 + driftNorm * 0.12));
+
+          // Prevent abrupt visual jumps between consecutive sessions.
+          if (prevRisk !== null) {
+            const delta = risk - prevRisk;
+            const bounded = Math.max(-12, Math.min(12, delta));
+            risk = clampScore(prevRisk + bounded);
+          }
+          prevRisk = risk;
+
+          const cog = clampScore(Math.round(csiRaw * 0.9 + 5));
+          const lin = clampScore(Math.round(csiRaw * 0.85 + 8));
+          const hes = clampScore(Math.round(risk * 0.8 + driftNorm * 0.2));
+          const emo = clampScore(Math.round(risk * 0.75 + driftNorm * 0.25));
           return {
             session: id,
             emo,
             cog,
             hes,
             lin,
-            csi: clampScore(Math.round(csiRaw * 0.35 + 50 * 0.65)),
+            csi: csiRaw,
             risk,
-            insight: `Session ${id}: transcript-driven scoring with bounded CSI adjustment.`
+            insight: `Session ${id}: backend-driven CSI and drift analysis.`
           };
         });
         setBackendStatus('online', 'Backend: online (current run)', 'Using current-run session analytics');
-        return buildAnalysisFromParsedSessions(perSession, analysisTranscripts, 'Current-run blended analysis');
+        return buildAnalysisFromParsedSessions(perSession, analysisTranscripts, 'Current-run backend analysis');
       }
 
       const userId = getCurrentUserId();

@@ -181,7 +181,9 @@ async def upload_and_analyze(
         if last_session and last_session.csi_score is not None:
             raw_csi = int(csi_data['csi_score'])
             prev_csi = int(last_session.csi_score)
-            smoothed_csi = int(round((0.30 * prev_csi) + (0.70 * raw_csi)))
+            smoothed_csi = int(round((0.45 * prev_csi) + (0.55 * raw_csi)))
+            max_step = 10
+            smoothed_csi = max(prev_csi - max_step, min(prev_csi + max_step, smoothed_csi))
             csi_data['raw_csi_score'] = raw_csi
             csi_data['csi_score'] = smoothed_csi
 
