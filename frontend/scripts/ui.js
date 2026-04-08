@@ -85,6 +85,8 @@ function renderUserDashboard(analysis) {
   document.getElementById('user-badge-name').textContent = user.name ? user.name.split(' ')[0] + ' · Personal Analysis' : 'You · Personal Analysis';
 
   document.getElementById('risk-description').textContent = p.description;
+  const sourceEl = document.getElementById('analysis-source-label');
+  if (sourceEl) sourceEl.textContent = p.analysisSource || 'Unknown';
 
   const delta = document.getElementById('risk-delta');
   const arrow = p.deltaArrow === 'up' ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="18 9 12 15 6 9"/>';

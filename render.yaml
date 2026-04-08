@@ -14,7 +14,7 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: FAST_ANALYSIS_MODE
-        value: "true"
+        value: "false"
 
   - type: web
     name: cognivara-node

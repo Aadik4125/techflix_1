@@ -319,6 +319,7 @@
         riskScore, riskLabel, riskClass, riskColor, gradStop1, gradStop2,
         deltaText, deltaArrow,
         description: `Your speech biomarkers have been analyzed across ${transcripts.length} sessions (${sourceLabel}).`,
+        analysisSource: sourceLabel,
         insight: perSession.map(p => p.insight || '').filter(Boolean).join('\n---\n') || 'Analysis complete.',
         insightMeta: `Generated today · ${sourceLabel} · Not a clinical diagnosis`,
         csiScore,
@@ -472,6 +473,7 @@
             deltaText,
             deltaArrow,
             description: `Your speech biomarkers were analyzed across ${jd.session_count || analysisTranscripts.length} sessions (FastAPI dashboard).`,
+            analysisSource: 'FastAPI dashboard history',
             insight: `Baseline ready: ${jd.baseline_ready ? 'yes' : 'no'}. Flagged features: ${(jd.flagged_features || []).join(', ') || 'none'}.`,
             insightMeta: 'Generated today · FastAPI dashboard · Not a clinical diagnosis',
             csiScore: csiArr[csiArr.length - 1] ?? fallbackCsi,
@@ -598,6 +600,8 @@
       document.getElementById('user-badge-name').textContent = user.name ? user.name.split(' ')[0] + ' · Personal Analysis' : 'You · Personal Analysis';
 
       document.getElementById('risk-description').textContent = p.description;
+      const sourceEl = document.getElementById('analysis-source-label');
+      if (sourceEl) sourceEl.textContent = p.analysisSource || 'Unknown';
 
       const delta = document.getElementById('risk-delta');
       const arrow = p.deltaArrow === 'up' ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="18 9 12 15 6 9"/>';
