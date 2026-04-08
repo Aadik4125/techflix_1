@@ -3,6 +3,6 @@
   "rewrites": [
     { "source": "/transcribe", "destination": "https://cognivara-node.onrender.com/transcribe" },
     { "source": "/analyze", "destination": "https://cognivara-node.onrender.com/analyze" },
-    { "source": "/api/:path*", "destination": "https://cognivara-backend.onrender.com/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://cognivara-backend-service.onrender.com/api/:path*" }
   ]
 }
