@@ -1,5 +1,6 @@
 node_modules/
 .venv/
+.sixth/
 .env
 .env.*
 !.env.example
@@ -11,13 +12,24 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Local backend runtime data
 backend/uploads/
 backend/cognivara.db
+*.sqlite
+*.sqlite3
+*.db
 
 # OS/editor noise
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+# Logs and temp output
+*.log
+tmp/
+temp/

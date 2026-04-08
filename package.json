@@ -1,7 +1,7 @@
 {
-  "name": "hackathon-backend",
+  "name": "cognivara",
   "version": "1.0.0",
-  "description": "Backend for hackathon frontend — Whisper transcription + AI analysis via Hugging Face Inference API",
+  "description": "CogniVara multi-service application with Node.js frontend service and cognitive analysis backend integrations",
   "main": "services/node/server.js",
   "scripts": {
     "start": "node services/node/server.js",

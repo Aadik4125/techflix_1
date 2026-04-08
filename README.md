@@ -1,10 +1,23 @@
 # CogniVara
 
-CogniVara is a cognitive risk analysis project with:
+CogniVara is a multi-service cognitive speech analysis project with:
 
 - A static frontend (`frontend/`)
 - A Node service for transcription and analysis proxy (`services/node/`)
 - A Python FastAPI backend for cognitive analytics (`backend/`)
+
+## Repository Status
+
+The repository is functional and already separated by runtime concern, but it still carries some prototype-era layout decisions.
+
+The main structural gap is that the backend currently has both:
+
+- a legacy flat structure in `backend/routes`, `backend/services`, and `backend/models`
+- a newer package-oriented structure in `backend/app/...`
+
+For professional maintenance, treat `backend/app/` as the long-term canonical backend package and treat the flat backend folders as legacy until they are consolidated.
+
+See [PROJECT_STRUCTURE.md](/Users/ASUS/Desktop/test_case_2/docs/PROJECT_STRUCTURE.md) for the authoritative structure guide.
 
 ## Project Structure
 
@@ -28,10 +41,19 @@ test_case_2/
       server.js
       hf.service.js
   backend/
+    app/
+      api/
+      core/
+      db/
+      models/
+      schemas/
+      services/
+      tasks/
     main.py
-    routes/
-    services/
-    models/
+    routes/           # legacy flat backend layout
+    services/         # legacy flat backend layout
+    models/           # legacy flat backend layout
+    alembic/
     uploads/
     requirements.txt
     cognivara.db
@@ -55,6 +77,14 @@ test_case_2/
   .env
   .env.example
 ```
+
+## Structure Notes
+
+- `frontend/` contains the browser application.
+- `services/node/` contains the Node.js service that serves the frontend and proxies external inference calls.
+- `backend/` contains the Python backend plus migrations.
+- `backend/uploads/` and `backend/cognivara.db` are local runtime artifacts and should not be treated as source code.
+- `archive/` is reference material only.
 
 ## Run Node Service
 
