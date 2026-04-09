@@ -11,16 +11,13 @@ from database import get_db
 from models.user import User
 from models.session import Session
 from models.baseline import Baseline
-from routes.auth import require_current_user
 from services.baseline import TRACKED_FEATURES, _merge_features
 
 router = APIRouter()
 
 
 @router.get('/dashboard/{user_id}')
-def get_dashboard(user_id: int, db: DBSession = Depends(get_db), current_user: User = Depends(require_current_user)):
-    if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail='Cannot view another user dashboard')
+def get_dashboard(user_id: int, db: DBSession = Depends(get_db)):
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -104,11 +101,8 @@ def get_dashboard(user_id: int, db: DBSession = Depends(get_db), current_user: U
 
 
 @router.get('/baseline/{user_id}')
-def get_baseline_status(user_id: int, db: DBSession = Depends(get_db), current_user: User = Depends(require_current_user)):
+def get_baseline_status(user_id: int, db: DBSession = Depends(get_db)):
     """Check baseline status for a user."""
-    if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail='Cannot view another user baseline')
-
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail='User not found')

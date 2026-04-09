@@ -16,7 +16,6 @@ from config import AUDIO_UPLOAD_DIR, FAST_ANALYSIS_MODE
 from database import get_db
 from models.session import Session
 from models.user import User
-from routes.auth import require_current_user
 from services.acoustic_features import extract_all_acoustic_features
 from services.baseline import compute_baseline, compute_z_scores
 from services.csi import compute_csi
@@ -119,7 +118,6 @@ async def upload_and_analyze(
     user_id: int = Form(...),
     transcript: str = Form(''),
     db: DBSession = Depends(get_db),
-    current_user: User = Depends(require_current_user),
 ):
     """
     Full cognitive analysis pipeline:
@@ -134,9 +132,6 @@ async def upload_and_analyze(
     9. Compute CSI
     10. Store everything in DB
     """
-    if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail='Cannot upload for another user')
-
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail='User not found')

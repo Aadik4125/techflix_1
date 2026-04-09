@@ -102,16 +102,6 @@
       return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
     }
 
-    function getStoredAccessToken() {
-      const u = getStoredUser();
-      return String(u.accessToken || '').trim();
-    }
-
-    function buildAuthHeaders(extra = {}) {
-      const token = getStoredAccessToken();
-      return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
-    }
-
     function backendHostLabel(base) {
       try {
         return new URL(base).host;
@@ -444,7 +434,7 @@
       for (const base of getFastApiCandidates()) {
         try {
           const endpoint = `${base}/api/dashboard/${userId}`;
-          const resp = await fetch(endpoint, { method: 'GET', headers: buildAuthHeaders() });
+          const resp = await fetch(endpoint, { method: 'GET' });
           const jd = await resp.json().catch(() => ({}));
           if (!resp.ok) throw new Error(jd.detail || jd.error || `Dashboard failed (${resp.status})`);
           const expectedSessions = analysisTranscripts.length;
@@ -928,7 +918,7 @@
 
           const ctrl = new AbortController();
           const timeout = setTimeout(() => ctrl.abort(), 8000);
-          const resp = await fetch(endpoint, { method: 'POST', body: fd, signal: ctrl.signal, headers: buildAuthHeaders() });
+          const resp = await fetch(endpoint, { method: 'POST', body: fd, signal: ctrl.signal });
           clearTimeout(timeout);
           const jd = await resp.json().catch(() => ({}));
           if (!resp.ok) throw new Error(jd.detail || jd.error || `HTTP ${resp.status}`);
@@ -1624,7 +1614,7 @@
           let dash = null;
           for (const base of getFastApiCandidates()) {
             try {
-              const resp = await fetch(`${base}/api/dashboard/${userId}`, { headers: buildAuthHeaders() });
+              const resp = await fetch(`${base}/api/dashboard/${userId}`);
               if (!resp.ok) continue;
               dash = await resp.json();
               break;
@@ -1694,59 +1684,6 @@
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
     function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
 
-    async function requestAuth(base, path, payload) {
-      const resp = await fetch(`${base}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const jd = await resp.json().catch(() => ({}));
-      if (!resp.ok) throw new Error(jd.detail || jd.error || `HTTP ${resp.status}`);
-      return jd;
-    }
-
-    async function authenticateUser(user) {
-      let lastErr = null;
-      for (const base of getFastApiCandidates()) {
-        try {
-          let authData;
-          try {
-            authData = await requestAuth(base, '/api/auth/signup', {
-              name: user.name,
-              email: user.email,
-              password: user.password,
-              age: user.age ? Number(user.age) : null,
-              gender: user.gender || null
-            });
-          } catch (signupErr) {
-            if (!/Email already exists/i.test(signupErr.message || '')) throw signupErr;
-            authData = await requestAuth(base, '/api/auth/login', {
-              email: user.email,
-              password: user.password
-            });
-          }
-
-          backendStatusBase = base;
-          setBackendStatus('online', `Backend: online (${backendHostLabel(base)})`, `Authenticated with ${base}`);
-
-          const authUser = authData.user || {};
-          return {
-            ...user,
-            userId: authUser.id,
-            name: authUser.name || user.name,
-            email: authUser.email || user.email,
-            age: authUser.age ?? user.age,
-            gender: authUser.gender || user.gender || '',
-            accessToken: authData.access_token,
-            password: ''
-          };
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      throw (lastErr || new Error('Could not authenticate with backend'));
-    }
-
     async function syncUserWithBackend(user) {
       let lastErr = null;
       for (const base of getFastApiCandidates()) {
@@ -1791,7 +1728,7 @@
         alert('Please fill all signup fields.');
         return;
       }
-      authenticateUser(user)
+      syncUserWithBackend(user)
         .then(saved => {
           localStorage.setItem('cognivara_user', JSON.stringify(saved));
           document.getElementById('login-form').reset();
@@ -1799,7 +1736,7 @@
           updateUserUI();
           window.location.reload();
         })
-        .catch(err => alert(`Could not sign in or create the account.\n\n${err.message}`));
+        .catch(err => alert(`Could not create account in backend. Make sure FastAPI is running.\n\n${err.message}`));
     }
 
     function updateUserUI() {

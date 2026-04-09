@@ -37,9 +37,6 @@ CORS_ORIGINS = os.getenv(
     'CORS_ORIGINS',
     'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500,null',
 ).split(',')
-JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'replace-this-in-production')
-JWT_ALGORITHM = os.getenv('JWT_ALGORITHM', 'HS256')
-JWT_ACCESS_TOKEN_MINUTES = int(os.getenv('JWT_ACCESS_TOKEN_MINUTES', '1440'))
 
 # ── Analysis Tuning ──────────────────────────────────────
 BASELINE_SESSION_COUNT = int(os.getenv('BASELINE_SESSION_COUNT', '3'))
