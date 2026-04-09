@@ -331,31 +331,25 @@
     }
 
     async function computeUserAnalysis(transcripts) {
-      function isInvalidTranscript(t) {
-        if (!t || !t.text || !t.text.trim()) return true;
-        const sessionId = Number(t.session);
-        const hasBackendUpload = Number.isFinite(sessionId) && sessionId > 0 && !!currentRunSessionAnalytics[sessionId];
-        // If backend upload succeeded for this session, it should not be treated as skipped
-        // even when transcript text is still pending/unavailable.
-        if (hasBackendUpload) return false;
-        const lower = t.text.toLowerCase();
-        return (
+      const analysisTranscripts = transcripts.map((t, i) => {
+        const sessionId = Number(t?.session) || (i + 1);
+        const rawText = String(t?.text || '').trim();
+        const lower = rawText.toLowerCase();
+        const isPlaceholder = (
+          !rawText ||
           lower.includes('no speech recognized') ||
           lower.includes('waiting for whisper') ||
-          lower.includes('transcript unavailable')
+          lower.includes('transcript unavailable') ||
+          lower.includes('transcript pending') ||
+          lower.includes('still processing')
         );
-      }
-
-      const invalid = transcripts.filter(isInvalidTranscript);
-      const skippedSessions = invalid.map(t => t.session);
-      if (skippedSessions.length) showTranscriptWarning(skippedSessions);
-      const validTranscripts = transcripts.filter(t => !isInvalidTranscript(t));
-      const analysisTranscripts = validTranscripts.length
-        ? validTranscripts
-        : transcripts.map((t, i) => ({
-          session: t.session || (i + 1),
-          text: `Session ${t.session || (i + 1)} speech sample recorded. Transcript unavailable; using audio-derived backend markers.`
-        }));
+        return {
+          session: sessionId,
+          text: isPlaceholder
+            ? `Session ${sessionId} speech sample recorded. Transcript still processing; using audio-derived backend markers.`
+            : rawText
+        };
+      });
 
       // Prefer current-run upload results over global dashboard history.
       const runSessionIds = analysisTranscripts.map(t => Number(t.session)).filter(n => Number.isFinite(n) && n > 0);
@@ -514,19 +508,6 @@
     }
 
     // Helper: display a warning banner for skipped sessions
-    function showTranscriptWarning(sessions) {
-      const msg = 'Session' + (sessions.length > 1 ? 's ' : ' ') + sessions.join(', ') + ' had no transcript and ' + (sessions.length > 1 ? 'were' : 'was') + ' skipped.';
-      let banner = document.getElementById('transcript-warning-banner');
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'transcript-warning-banner';
-        banner.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:999;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);backdrop-filter:blur(12px);padding:12px 24px;border-radius:12px;font-size:14px;font-weight:500;font-family:Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,0.3);animation:fadeUp 0.5s ease both;max-width:90%;text-align:center;';
-        document.body.appendChild(banner);
-        setTimeout(function () { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 8000);
-      }
-      banner.textContent = '\u26A0\uFE0F ' + msg;
-    }
-
     // ══════════════════════════════════════════════
     //  GRAPH RENDERING
     // ══════════════════════════════════════════════
@@ -787,7 +768,7 @@
     let pendingTranscriptions = {};
     let isRecordingTransition = false;
     let recordingStartedAt = 0;
-    const USE_BROWSER_SPEECH_RECOGNITION = false;
+    const USE_BROWSER_SPEECH_RECOGNITION = true;
     const RECORDING_QUESTIONS = [
       'How was your day?',
       'What was the last thing you did that got you in trouble?',
@@ -811,6 +792,38 @@
     function updateRecordingPrompt(step) {
       const timerLabel = document.getElementById('timer-label');
       if (timerLabel) timerLabel.textContent = getRecordingQuestion(step);
+    }
+
+    function resetRecordingUiState() {
+      isRecording = false;
+      isRecordingTransition = false;
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      const recordBtn = document.getElementById('record-btn');
+      const recordRing = document.getElementById('record-ring');
+      const recordRing2 = document.getElementById('record-ring2');
+      const micIdle = document.getElementById('mic-idle');
+      const micActive = document.getElementById('mic-active');
+      const recordLabel = document.getElementById('record-label');
+      const timer = document.getElementById('timer');
+      const progressBar = document.getElementById('progress-bar');
+      const transcriptBox = document.getElementById('transcript-box');
+      if (recordBtn) recordBtn.classList.remove('recording');
+      if (recordRing) recordRing.classList.remove('active');
+      if (recordRing2) recordRing2.classList.remove('active');
+      if (micIdle) micIdle.style.display = 'block';
+      if (micActive) micActive.style.display = 'none';
+      if (recordLabel) {
+        recordLabel.classList.remove('on');
+        recordLabel.textContent = completedSteps >= 3 ? 'Complete' : 'Tap to Record';
+      }
+      if (timer) {
+        timer.classList.remove('active');
+        timer.textContent = completedSteps >= 3 ? '✓' : '0:30';
+      }
+      if (progressBar && completedSteps < 3) progressBar.style.width = '0%';
+      if (transcriptBox) transcriptBox.style.display = 'none';
+      if (completedSteps < 3) updateRecordingPrompt(currentStep);
     }
 
     function releaseMicrophone() {
@@ -1173,6 +1186,9 @@
       // Capture raw audio via one persistent microphone stream so permission is requested only once.
       ensureMicrophoneAccess().then(stream => {
         try {
+          if (!window.MediaRecorder) {
+            throw new Error('This browser does not support in-app audio recording');
+          }
           const preferred = [
             'audio/webm;codecs=opus',
             'audio/webm',
@@ -1184,6 +1200,8 @@
           mediaRecorder = chosen ? new MediaRecorder(stream, { mimeType: chosen }) : new MediaRecorder(stream);
         } catch (e) {
           mediaRecorder = null;
+          resetRecordingUiState();
+          alert(`Recording is not available on this device: ${e.message}`);
           return;
         }
         const sessionChunks = [];
@@ -1192,6 +1210,7 @@
         mediaRecorder.start(250);
       }).catch(e => {
         mediaRecorder = null;
+        resetRecordingUiState();
         if (USE_BROWSER_SPEECH_RECOGNITION) {
           updateTranscriptUI('Live transcript unavailable. Recording will still be saved for this session.');
         }
@@ -1263,8 +1282,8 @@
             if (!chunksRef || chunksRef.length === 0) {
               const idx = allTranscripts.findIndex(x => x.session === sessionId);
               if (idx >= 0 && !browserText) {
-                allTranscripts[idx].text = 'Transcript unavailable for this session.';
-                updateSessionCardIfCurrent(sessionId, 'Transcript unavailable for this session.');
+                allTranscripts[idx].text = 'Transcript still processing in background.';
+                updateSessionCardIfCurrent(sessionId, 'Transcript still processing in background.');
                 renderAllTranscripts();
               }
               return;
@@ -1312,8 +1331,8 @@
                   updateSessionCardIfCurrent(sessionId, resolvedText);
                   renderAllTranscripts();
                 } else if (idx >= 0 && allTranscripts[idx].text.toLowerCase().includes('pending')) {
-                  allTranscripts[idx].text = 'Transcript unavailable for this session.';
-                  updateSessionCardIfCurrent(sessionId, 'Transcript unavailable for this session.');
+                  allTranscripts[idx].text = 'Transcript still processing in background.';
+                  updateSessionCardIfCurrent(sessionId, 'Transcript still processing in background.');
                   renderAllTranscripts();
                 }
               })();
@@ -1332,8 +1351,8 @@
         // No captured audio buffer: keep deterministic fallback text instead of "transcribing..." placeholder.
         const idx = allTranscripts.findIndex(x => x.session === sessionId);
         if (idx >= 0 && !browserText) {
-          allTranscripts[idx].text = 'Transcript unavailable for this session.';
-          updateSessionCardIfCurrent(sessionId, 'Transcript unavailable for this session.');
+          allTranscripts[idx].text = 'Transcript still processing in background.';
+          updateSessionCardIfCurrent(sessionId, 'Transcript still processing in background.');
           renderAllTranscripts();
         }
       }
@@ -1352,16 +1371,13 @@
       }
 
       if (completedSteps < 3) {
+        const nextStep = document.getElementById(`step-${currentStep}`);
+        if (nextStep) nextStep.classList.add('active');
         document.getElementById('timer').textContent = '0:30';
         document.getElementById('progress-bar').style.width = '0%';
-        document.getElementById('record-label').textContent = 'Tap to Record';
+        document.getElementById('record-label').textContent = `Start Recording ${currentStep}`;
         updateRecordingPrompt(currentStep);
         isRecordingTransition = false;
-        setTimeout(() => {
-          if (!isRecording && !isRecordingTransition && completedSteps < 3) {
-            startRecording();
-          }
-        }, 450);
       } else {
         document.getElementById('progress-bar').style.width = '100%';
         document.getElementById('timer').textContent = '✓';
@@ -1372,7 +1388,7 @@
         document.getElementById('transcript-box').style.display = 'none';
 
         Promise.resolve()
-          .then(() => waitForPendingSessionUploads(4000))
+          .then(() => waitForPendingSessionUploads(8000))
           .then(() => {
             renderAllTranscripts();
             return computeUserAnalysis(allTranscripts);
@@ -1754,8 +1770,8 @@
         gender: document.getElementById('input-gender').value.trim(),
         password: document.getElementById('input-password').value
       };
-      if (!user.name || !user.email || !user.age || !user.gender || !user.password) {
-        alert('Please fill all signup fields.');
+      if (!user.name || !user.email || !user.age || !user.gender) {
+        alert('Please fill all required fields.');
         return;
       }
       syncUserWithBackend(user)
@@ -1764,7 +1780,8 @@
           document.getElementById('login-form').reset();
           hideLogin();
           updateUserUI();
-          window.location.reload();
+          showHomeAndRecord();
+          refreshBackendStatus(true);
         })
         .catch(err => alert(`Could not create account in backend. Make sure FastAPI is running.\n\n${err.message}`));
     }
@@ -1944,6 +1961,11 @@
 
     window.addEventListener('scroll', syncHomeRecordNavByScroll, { passive: true });
     window.addEventListener('resize', syncHomeRecordNavByScroll);
+    window.addEventListener('online', () => { refreshBackendStatus(true); });
+    window.addEventListener('focus', () => { refreshBackendStatus(true); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshBackendStatus(true);
+    });
 
     window.addEventListener('beforeunload', () => {
       releaseMicrophone();

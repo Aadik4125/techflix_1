@@ -3,8 +3,13 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090e17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="COGNIVARA">
   <title>COGNIVARA – AI Cognitive Risk Detection</title>
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -113,7 +118,7 @@
       <form id="login-form" onsubmit="submitSignup(event)">
         <label>Name<input type="text" id="input-name" required placeholder="Your full name"></label>
         <label>Email<input type="email" id="input-email" required placeholder="you@example.com"></label>
-        <label>Password<input type="password" id="input-password" required placeholder="Create a password"></label>
+        <label>Password (Optional)<input type="password" id="input-password" placeholder="Optional for now"></label>
         <div style="display:flex; gap:10px;">
           <label style="flex:1;">Age<input type="number" id="input-age" min="0" required placeholder="e.g. 34"></label>
           <label style="flex:1;">Gender

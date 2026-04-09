@@ -1,0 +1,10 @@
+{
+  "name": "COGNIVARA",
+  "short_name": "COGNIVARA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090e17",
+  "theme_color": "#090e17",
+  "description": "Voice-based cognitive risk tracking with backend-driven recording analysis.",
+  "orientation": "portrait"
+}
