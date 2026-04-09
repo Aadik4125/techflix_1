@@ -785,8 +785,9 @@
     let liveTranscriptSnapshot = '';
     let mediaMimeType = 'audio/webm';
     let pendingTranscriptions = {};
+    let isRecordingTransition = false;
     let recordingStartedAt = 0;
-    const USE_BROWSER_SPEECH_RECOGNITION = true;
+    const USE_BROWSER_SPEECH_RECOGNITION = false;
     const RECORDING_QUESTIONS = [
       'How was your day?',
       'What was the last thing you did that got you in trouble?',
@@ -805,6 +806,11 @@
     function formatRecordedDuration(seconds) {
       const safe = Math.max(0.1, Number(seconds) || 0);
       return `${safe.toFixed(1)} sec recorded`;
+    }
+
+    function updateRecordingPrompt(step) {
+      const timerLabel = document.getElementById('timer-label');
+      if (timerLabel) timerLabel.textContent = getRecordingQuestion(step);
     }
 
     function releaseMicrophone() {
@@ -865,6 +871,7 @@
 
     function updateTranscriptUI(text) {
       const el = document.getElementById('transcript-text');
+      if (!el) return;
       el.innerHTML = `<span class="has-text">${text}</span><span class="transcript-cursor"></span>`;
     }
 
@@ -1063,6 +1070,7 @@
 
     function toggleRecord() {
       if (!isLoggedIn()) { showLogin(); return; }
+      if (isRecordingTransition) return;
       if (completedSteps >= 3) return; // guard — use startNewRecording() to reset
       if (!isRecording) startRecording();
       else { clearInterval(timerInterval); stopRecording(); }
@@ -1078,6 +1086,10 @@
       userAnalysis = null;
       sessionTranscript = '';
       liveTranscriptSnapshot = '';
+      pendingTranscriptions = {};
+      mediaRecorder = null;
+      recordedChunks = [];
+      isRecordingTransition = false;
       // Reset UI
       for (let i = 1; i <= 3; i++) {
         const s = document.getElementById(`step-${i}`);
@@ -1088,7 +1100,7 @@
       document.getElementById('timer').style.letterSpacing = '';
       document.getElementById('progress-bar').style.width = '0%';
       document.getElementById('record-label').textContent = 'Tap to Record';
-      document.getElementById('timer-label').textContent = getRecordingQuestion(1);
+      updateRecordingPrompt(1);
       document.getElementById('baseline-established').classList.remove('show');
       document.getElementById('session-transcript-card').classList.remove('show');
       document.getElementById('redo-btn').classList.remove('show');
@@ -1118,7 +1130,9 @@
     });
 
     function startRecording() {
+      if (isRecording || isRecordingTransition || completedSteps >= 3) return;
       isRecording = true;
+      isRecordingTransition = false;
       timeLeft = 30;
       recordingStartedAt = performance.now();
       sessionTranscript = '';
@@ -1137,8 +1151,12 @@
       document.getElementById('record-label').textContent = 'Tap to Stop';
       document.getElementById('record-label').classList.add('on');
       document.getElementById('timer').classList.add('active');
+      for (let i = 1; i <= 3; i++) {
+        const stepEl = document.getElementById(`step-${i}`);
+        if (stepEl && i !== currentStep) stepEl.classList.remove('active');
+      }
       document.getElementById(`step-${currentStep}`).classList.add('active');
-      document.getElementById('timer-label').textContent = getRecordingQuestion(currentStep);
+      updateRecordingPrompt(currentStep);
 
       // Use browser speech recognition when available so transcript text appears during each recording.
       if (USE_BROWSER_SPEECH_RECOGNITION) {
@@ -1189,7 +1207,11 @@
     }
 
     function stopRecording() {
+      if (!isRecording || isRecordingTransition) return;
       isRecording = false;
+      isRecordingTransition = true;
+      clearInterval(timerInterval);
+      timerInterval = null;
       if (recognition) { try { recognition.stop(); } catch (e) { } }
       const elapsedSec = Math.min(30, Math.max(0.1, (performance.now() - recordingStartedAt) / 1000));
 
@@ -1333,18 +1355,24 @@
         document.getElementById('timer').textContent = '0:30';
         document.getElementById('progress-bar').style.width = '0%';
         document.getElementById('record-label').textContent = 'Tap to Record';
-        document.getElementById('timer-label').textContent = getRecordingQuestion(currentStep);
+        updateRecordingPrompt(currentStep);
+        isRecordingTransition = false;
+        setTimeout(() => {
+          if (!isRecording && !isRecordingTransition && completedSteps < 3) {
+            startRecording();
+          }
+        }, 450);
       } else {
         document.getElementById('progress-bar').style.width = '100%';
         document.getElementById('timer').textContent = '✓';
         document.getElementById('timer').style.letterSpacing = '0';
-        document.getElementById('timer-label').textContent = 'Analyzing speech biomarkers…';
+        document.getElementById('timer-label').textContent = 'Analyzing speech biomarkers...';
         document.getElementById('record-label').textContent = 'Complete';
         document.getElementById('baseline-established').classList.add('show');
         document.getElementById('transcript-box').style.display = 'none';
 
         Promise.resolve()
-          .then(() => waitForPendingSessionUploads(12000))
+          .then(() => waitForPendingSessionUploads(4000))
           .then(() => {
             renderAllTranscripts();
             return computeUserAnalysis(allTranscripts);
@@ -1387,11 +1415,13 @@
             currentComparePatient = best;
             renderComparePage(currentComparePatient);
 
-            setTimeout(showDashboard, 2200);
+            isRecordingTransition = false;
+            setTimeout(showDashboard, 1400);
           })
           .catch(err => {
             console.error('Analysis failed', err);
             userAnalysis = null;
+            isRecordingTransition = false;
             alert(`Analysis failed: ${err.message}`);
           });
       }
