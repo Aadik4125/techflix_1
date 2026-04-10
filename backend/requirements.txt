@@ -5,6 +5,7 @@ python-dotenv
 sqlalchemy
 psycopg[binary]
 psycopg2-binary
+pg8000
 alembic
 python-jose[cryptography]
 passlib[bcrypt]

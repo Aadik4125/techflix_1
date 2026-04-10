@@ -27,7 +27,13 @@ else:
     DATABASE_URL = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'cognivara.db')
 
 def _resolve_postgres_dialect(url: str) -> str:
-    if not (url.startswith('postgres://') or url.startswith('postgresql://')):
+    known_prefixes = (
+        'postgres://',
+        'postgresql://',
+        'postgresql+psycopg://',
+        'postgresql+psycopg2://',
+    )
+    if not any(url.startswith(prefix) for prefix in known_prefixes):
         return url
 
     suffix = url.split('://', 1)[1]
@@ -43,8 +49,14 @@ def _resolve_postgres_dialect(url: str) -> str:
     except Exception:
         pass
 
-    # Fall back to SQLAlchemy's default postgres URL so the deploy log points
-    # to the missing driver more directly instead of forcing the wrong dialect.
+    try:
+        import pg8000  # noqa: F401
+        return f'postgresql+pg8000://{suffix}'
+    except Exception:
+        pass
+
+    # Fall back to SQLAlchemy's default postgres URL so it can pick the best
+    # available PostgreSQL DBAPI in the environment.
     return f'postgresql://{suffix}'
 
 DATABASE_URL = _resolve_postgres_dialect(DATABASE_URL)
