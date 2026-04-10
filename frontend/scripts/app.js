@@ -809,6 +809,10 @@
       const progressBar = document.getElementById('progress-bar');
       const transcriptBox = document.getElementById('transcript-box');
       if (recordBtn) recordBtn.classList.remove('recording');
+      if (recordBtn && isLoggedIn()) {
+        recordBtn.classList.remove('disabled');
+        recordBtn.disabled = false;
+      }
       if (recordRing) recordRing.classList.remove('active');
       if (recordRing2) recordRing2.classList.remove('active');
       if (micIdle) micIdle.style.display = 'block';
@@ -1264,6 +1268,8 @@
       const recorderRef = mediaRecorder;
       const chunksRef = recordedChunks;
       const mimeTypeRef = mediaMimeType;
+      mediaRecorder = null;
+      recordedChunks = [];
 
       // Upload each recorded session to the FastAPI analytics backend.
       let transcriptionPromise = Promise.resolve();
@@ -1341,10 +1347,6 @@
             console.warn('Session analytics upload failed', e);
             const fallbackText = allTranscripts.find(x => x.session === sessionId)?.text || '';
             updateSessionCardIfCurrent(sessionId, fallbackText || `Session upload failed: ${e.message}`);
-          } finally {
-            // Keep microphone stream alive across sessions and don't clobber newer session state.
-            if (recordedChunks === chunksRef) recordedChunks = [];
-            if (mediaRecorder === recorderRef) mediaRecorder = null;
           }
         })();
       } else {
@@ -1372,10 +1374,15 @@
 
       if (completedSteps < 3) {
         const nextStep = document.getElementById(`step-${currentStep}`);
+        const recordBtn = document.getElementById('record-btn');
         if (nextStep) nextStep.classList.add('active');
         document.getElementById('timer').textContent = '0:30';
         document.getElementById('progress-bar').style.width = '0%';
         document.getElementById('record-label').textContent = `Start Recording ${currentStep}`;
+        if (recordBtn) {
+          recordBtn.classList.remove('disabled');
+          recordBtn.disabled = false;
+        }
         updateRecordingPrompt(currentStep);
         isRecordingTransition = false;
       } else {
