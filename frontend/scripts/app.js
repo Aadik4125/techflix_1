@@ -63,6 +63,7 @@
     let backendStatusBusy = false;
     let backendProbeFailures = 0;
     let backendLastOkAt = 0;
+    const PRODUCTION_BACKEND_URL = 'https://cognivara-backend-service.onrender.com';
 
     function getApiBase() {
       if (window.COGNIVARA_API_BASE && String(window.COGNIVARA_API_BASE).trim()) {
@@ -70,7 +71,7 @@
       }
       if (window.location.protocol === 'file:') return 'http://localhost:8000';
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:8000';
-      return window.location.origin;
+      return PRODUCTION_BACKEND_URL;
     }
 
     function getApiCandidates() {
@@ -80,15 +81,21 @@
 
     function getFastApiCandidates() {
       const preferred = getApiBase();
+      const currentOrigin = (window.location.origin || '').replace(/\/$/, '');
       let preferredHost = '';
       try {
         preferredHost = new URL(preferred).hostname;
       } catch (e) {}
       const isLocalPreferred = preferredHost === 'localhost' || preferredHost === '127.0.0.1';
       if (!isLocalPreferred && preferred) {
-        return [String(preferred).replace(/\/$/, '')];
+        const set = new Set([String(preferred).replace(/\/$/, '')]);
+        if (currentOrigin && currentOrigin !== preferred) set.add(currentOrigin);
+        if (PRODUCTION_BACKEND_URL && PRODUCTION_BACKEND_URL !== preferred) set.add(PRODUCTION_BACKEND_URL);
+        return Array.from(set);
       }
       const set = new Set([preferred, 'http://localhost:8000', 'http://127.0.0.1:8000']);
+      if (currentOrigin && /^https?:\/\//.test(currentOrigin)) set.add(currentOrigin);
+      if (PRODUCTION_BACKEND_URL) set.add(PRODUCTION_BACKEND_URL);
       return Array.from(set).filter(Boolean).map(v => String(v).replace(/\/$/, ''));
     }
 
@@ -128,7 +135,7 @@
     async function probeBackend(base) {
       try {
         const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 10000);
+        const t = setTimeout(() => ctrl.abort(), 25000);
         const resp = await fetch(`${base}/api/health`, { method: 'GET', signal: ctrl.signal });
         clearTimeout(t);
         return resp.ok;
@@ -179,7 +186,7 @@
         }
         backendProbeFailures += 1;
         const recentOk = backendLastOkAt > 0 && (Date.now() - backendLastOkAt) < (10 * 60 * 1000);
-        if (backendProbeFailures >= 8 || (force && !recentOk)) {
+        if (backendProbeFailures >= 8) {
           setBackendStatus('offline', 'Backend: offline', 'FastAPI backend is not reachable');
         } else if (backendStatusBase || recentOk) {
           setBackendStatus(
@@ -188,7 +195,7 @@
             'Backend is slow/busy. Retrying health checks.'
           );
         } else {
-          setBackendStatus('checking', 'Backend: checking', 'Backend response delayed; retrying');
+          setBackendStatus('checking', 'Backend: waking up', 'Backend response delayed; retrying');
         }
         return false;
       } finally {
