@@ -277,6 +277,113 @@
       };
     }
 
+    function getTranscriptForSession(transcripts, sessionId) {
+      const match = (transcripts || []).find(t => Number(t.session) === Number(sessionId));
+      return String(match?.text || '').trim();
+    }
+
+    function isPlaceholderTranscript(text) {
+      const lower = String(text || '').toLowerCase();
+      return (
+        !lower.trim() ||
+        lower.includes('no speech recognized') ||
+        lower.includes('waiting for whisper') ||
+        lower.includes('transcript unavailable') ||
+        lower.includes('transcript pending') ||
+        lower.includes('still processing') ||
+        lower.includes('speech sample recorded')
+      );
+    }
+
+    function spokenContentStats(text) {
+      const raw = String(text || '').trim();
+      const words = raw.toLowerCase().match(/[a-z']+/g) || [];
+      const sentences = raw.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+      const stop = new Set([
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'for', 'from',
+        'had', 'has', 'have', 'he', 'her', 'his', 'i', 'in', 'is', 'it', 'its', 'me',
+        'my', 'of', 'on', 'or', 'our', 'she', 'so', 'that', 'the', 'their', 'them',
+        'then', 'there', 'they', 'this', 'to', 'was', 'we', 'were', 'with', 'you',
+        'your', 'about', 'just', 'really', 'today'
+      ]);
+      const filler = new Set(['um', 'uh', 'like', 'actually', 'basically', 'well', 'right', 'you', 'know']);
+      const negative = new Set(['sad', 'angry', 'upset', 'worried', 'stress', 'stressed', 'tired', 'confused', 'hard', 'difficult', 'bad']);
+      const positive = new Set(['happy', 'good', 'great', 'calm', 'fine', 'better', 'excited', 'relaxed', 'nice', 'easy']);
+
+      const fillerCount = words.filter(w => filler.has(w)).length;
+      const repeatCount = words.slice(1).reduce((n, w, i) => n + (w === words[i] ? 1 : 0), 0);
+      const unique = new Set(words);
+      const keywordCounts = new Map();
+      words.forEach(w => {
+        if (w.length < 4 || stop.has(w) || filler.has(w)) return;
+        keywordCounts.set(w, (keywordCounts.get(w) || 0) + 1);
+      });
+      const keywords = [...keywordCounts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 4)
+        .map(([word]) => word);
+      const firstSentence = sentences[0] || raw;
+      const quote = firstSentence.length > 120 ? `${firstSentence.slice(0, 117)}...` : firstSentence;
+      const positiveCount = words.filter(w => positive.has(w)).length;
+      const negativeCount = words.filter(w => negative.has(w)).length;
+
+      return {
+        raw,
+        words,
+        wordCount: words.length,
+        sentenceCount: sentences.length || (raw ? 1 : 0),
+        avgSentenceLen: words.length / Math.max(1, sentences.length || 1),
+        lexicalDiversity: words.length ? unique.size / words.length : 0,
+        fillerRatio: words.length ? fillerCount / words.length : 0,
+        repeatRatio: words.length ? repeatCount / words.length : 0,
+        fillerCount,
+        repeatCount,
+        keywords,
+        quote,
+        tone: positiveCount > negativeCount ? 'positive' : negativeCount > positiveCount ? 'strained' : 'neutral',
+      };
+    }
+
+    function buildTranscriptGroundedInsight(sessionId, text, scores = {}, sourceLabel = 'analysis') {
+      if (isPlaceholderTranscript(text)) {
+        return `Session ${sessionId}: transcript was not available yet, so the interpretation relies on ${sourceLabel} audio and CSI markers. Re-run after transcription finishes for content-specific wording.`;
+      }
+
+      const stats = spokenContentStats(text);
+      const topicText = stats.keywords.length
+        ? `Main spoken themes: ${stats.keywords.join(', ')}.`
+        : 'Main spoken themes were too sparse to identify reliably.';
+      const fluencyText = stats.fillerRatio >= 0.08
+        ? `Frequent fillers (${stats.fillerCount}/${stats.wordCount} words) suggest hesitation pressure.`
+        : stats.repeatRatio >= 0.05
+          ? `Repeated adjacent words (${stats.repeatCount}) suggest some restart behavior.`
+          : 'Filler and immediate repetition levels were low.';
+      const structureText = stats.wordCount < 12
+        ? 'Because the response was very short, this session has low content confidence.'
+        : stats.lexicalDiversity >= 0.72 && stats.avgSentenceLen >= 8
+          ? 'The response used varied vocabulary with enough sentence length for a more content-grounded read.'
+          : stats.lexicalDiversity < 0.48
+            ? 'Vocabulary variety was limited, which can lower the linguistic-complexity estimate.'
+            : 'Sentence structure was understandable, with moderate vocabulary variety.';
+      const scoreText = Number.isFinite(Number(scores.risk))
+        ? `Session risk estimate: ${clampScore(scores.risk)}/100, CSI: ${clampScore(scores.csi ?? scores.cog ?? 50)}/100.`
+        : '';
+
+      return `Session ${sessionId}: based on what was said - "${stats.quote}". ${topicText} Tone appears ${stats.tone}. ${structureText} ${fluencyText} ${scoreText}`.trim();
+    }
+
+    function buildExplainability(transcripts, sessions) {
+      const texts = (transcripts || []).map(t => String(t.text || '')).filter(t => !isPlaceholderTranscript(t));
+      const stats = spokenContentStats(texts.join(' '));
+      const avgRisk = Math.round((sessions || []).reduce((a, s) => a + (Number(s.risk) || 0), 0) / Math.max(1, (sessions || []).length));
+      const topics = stats.keywords.length ? stats.keywords.join(', ') : 'not enough transcript content';
+      return [
+        `Spoken content themes detected: ${topics}.`,
+        `Language signal: ${stats.wordCount} words, ${(stats.lexicalDiversity * 100).toFixed(1)}% lexical diversity, ${(stats.fillerRatio * 100).toFixed(1)}% fillers.`,
+        `Composite risk settled at ${avgRisk}/100 after combining transcript-derived fluency with backend biomarkers.`
+      ];
+    }
+
     function buildAnalysisFromParsedSessions(perSession, transcripts, sourceLabel) {
       const emoArr = perSession.map(p => clampScore(p.emo));
       const cogArr = perSession.map(p => clampScore(p.cog));
@@ -323,13 +430,22 @@
         deltaText, deltaArrow,
         description: `Your speech biomarkers have been analyzed across ${transcripts.length} sessions (${sourceLabel}).`,
         analysisSource: sourceLabel,
-        insight: perSession.map(p => p.insight || '').filter(Boolean).join('\n---\n') || 'Analysis complete.',
+        insight: perSession.map((p) => (
+          p.insight ||
+          buildTranscriptGroundedInsight(
+            p.session,
+            getTranscriptForSession(transcripts, p.session),
+            p,
+            sourceLabel
+          )
+        )).filter(Boolean).join('\n---\n') || 'Analysis complete.',
         insightMeta: `Generated today · ${sourceLabel} · Not a clinical diagnosis`,
         csiScore,
         indices: { emo: emoIdx, cog: cogIdx, flu: fluIdx },
         indexColors: { emo: riskColor, cog: riskColor, flu: riskColor },
         emo: emoArr, csi: csiArr, cog: cogArr, hes: hesArr, lin: linArr, risk: riskArr,
-        transcripts, sessions: perSession
+        transcripts, sessions: perSession,
+        explain: buildExplainability(transcripts, perSession)
       };
     }
 
@@ -377,7 +493,12 @@
               lin: local.lin,
               csi: clampScore(100 - risk),
               risk,
-              insight: `Session ${id}: partial upload fallback (local estimate).`
+              insight: buildTranscriptGroundedInsight(
+                id,
+                getTranscriptForSession(analysisTranscripts, id),
+                { ...local, csi: clampScore(100 - risk), risk },
+                'partial upload fallback'
+              )
             };
           }
           const csiRaw = clampScore(data?.csi?.csi_score ?? data?.user_latest_csi_score ?? 50);
@@ -408,7 +529,12 @@
             lin,
             csi: csiRaw,
             risk,
-            insight: `Session ${id}: backend-driven CSI and drift analysis.`
+            insight: buildTranscriptGroundedInsight(
+              id,
+              getTranscriptForSession(analysisTranscripts, id),
+              { emo, cog, hes, lin, csi: csiRaw, risk },
+              'backend CSI and drift analysis'
+            )
           };
         });
         setBackendStatus('online', 'Backend: online (current run)', 'Using current-run session analytics');
@@ -471,7 +597,19 @@
             deltaArrow,
             description: `Your speech biomarkers were analyzed across ${jd.session_count || analysisTranscripts.length} sessions (FastAPI dashboard).`,
             analysisSource: 'FastAPI dashboard history',
-            insight: `Baseline ready: ${jd.baseline_ready ? 'yes' : 'no'}. Flagged features: ${(jd.flagged_features || []).join(', ') || 'none'}.`,
+            insight: analysisTranscripts.map((t, i) => buildTranscriptGroundedInsight(
+              t.session,
+              t.text,
+              {
+                risk: riskArr[i] ?? riskScore,
+                csi: csiArr[i] ?? fallbackCsi,
+                cog: cogArr[i] ?? fallbackCsi,
+                lin: linArr[i] ?? 50,
+                hes: hesArr[i] ?? 50,
+                emo: emoArr[i] ?? 50
+              },
+              'FastAPI dashboard history'
+            )).join('\n---\n'),
             insightMeta: 'Generated today · FastAPI dashboard · Not a clinical diagnosis',
             csiScore: csiArr[csiArr.length - 1] ?? fallbackCsi,
             indices: {
@@ -487,7 +625,19 @@
             lin: linArr,
             risk: riskArr,
             transcripts,
-            sessions: []
+            sessions: analysisTranscripts.map((t, i) => ({
+              session: t.session,
+              risk: riskArr[i] ?? riskScore,
+              csi: csiArr[i] ?? fallbackCsi,
+              cog: cogArr[i] ?? fallbackCsi,
+              lin: linArr[i] ?? 50,
+              hes: hesArr[i] ?? 50,
+              emo: emoArr[i] ?? 50
+            })),
+            explain: buildExplainability(
+              analysisTranscripts,
+              analysisTranscripts.map((t, i) => ({ session: t.session, risk: riskArr[i] ?? riskScore }))
+            )
           };
 
           backendStatusBase = base;
@@ -499,7 +649,14 @@
       }
 
       // Last-resort local analysis so dashboard still works offline.
-      const localPerSession = analysisTranscripts.map(t => ({ session: t.session, ...localHeuristicAnalysis(t.text) }));
+      const localPerSession = analysisTranscripts.map(t => {
+        const local = localHeuristicAnalysis(t.text);
+        return {
+          session: t.session,
+          ...local,
+          insight: buildTranscriptGroundedInsight(t.session, t.text, local, 'local fallback analysis')
+        };
+      });
       if (localPerSession.length) {
         setBackendStatus('checking', 'Backend: local fallback', 'Using in-browser fallback analysis');
         return buildAnalysisFromParsedSessions(localPerSession, transcripts, 'Local fallback analysis');
@@ -594,6 +751,11 @@
 
       document.getElementById('insight-text').textContent = p.insight;
       document.getElementById('insight-meta').textContent = p.insightMeta;
+      const explain = Array.isArray(p.explain) ? p.explain : [];
+      ['explain-1', 'explain-2', 'explain-3'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el && explain[i]) el.textContent = explain[i];
+      });
       document.getElementById('risk-csi-score').textContent = p.csiScore ?? p.indices?.cog ?? '—';
 
       const { emo, cog, flu } = p.indices;

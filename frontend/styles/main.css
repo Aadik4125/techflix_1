@@ -1587,6 +1587,7 @@
       font-size: 14px;
       color: var(--navy);
       line-height: 1.7;
+      white-space: pre-line;
     }
 
     .insight-footer {
