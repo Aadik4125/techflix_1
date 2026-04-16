@@ -22,6 +22,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from scipy import sparse
+from tools.feature_engineering import compute_text_features
 
 
 def load_sessions_from_db() -> pd.DataFrame:
@@ -40,7 +43,16 @@ def load_sessions_from_db() -> pd.DataFrame:
 
     data = []
     for r in rows:
-        data.append({'session_id': int(r.id), 'user_id': int(r.user_id), 'session_number': int(r.session_number), 'transcript': r.transcript or '', 'csi_score': int(r.csi_score) if r.csi_score is not None else None})
+        data.append({
+            'session_id': int(r.id),
+            'user_id': int(r.user_id),
+            'session_number': int(r.session_number),
+            'transcript': r.transcript or '',
+            'csi_score': int(r.csi_score) if r.csi_score is not None else None,
+            'acoustic_features': r.acoustic_features or {},
+            'temporal_features': r.temporal_features or {},
+            'linguistic_features': r.linguistic_features or {},
+        })
     return pd.DataFrame(data)
 
 
@@ -69,7 +81,64 @@ def build_and_train(df: pd.DataFrame, out_dir: str = 'tools') -> None:
     y, bins = map_scores_to_labels(scores)
 
     vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
-    X = vectorizer.fit_transform(texts)
+    X_text = vectorizer.fit_transform(texts)
+
+    # Build numeric feature matrix from stored JSON features (acoustic/temporal/linguistic)
+    numeric_feature_names = [
+        'mfcc_variability_mean',
+        'rms_mean',
+        'zcr_mean',
+        'spectral_centroid_mean',
+        'harmonic_ratio',
+        'tempo',
+        'duration_sec',
+        'speech_rate_estimate',
+        'lexical_diversity',
+        # engineered text features
+        'sentiment_compound',
+        'negative_ratio',
+        'stress_keyword_count',
+    ]
+
+    numeric_rows = []
+    for idx, row in df.iterrows():
+        a = row.get('acoustic_features') or {}
+        t = row.get('temporal_features') or {}
+        l = row.get('linguistic_features') or {}
+        # engineered text features
+        eng = compute_text_features(row.get('transcript') or '')
+        vals = []
+        for k in numeric_feature_names:
+            v = None
+            # prefer acoustic-derived keys first
+            if k in a:
+                v = a.get(k)
+            elif k in t:
+                v = t.get(k)
+            elif k in l:
+                v = l.get(k)
+            elif k in eng:
+                v = eng.get(k)
+            try:
+                vals.append(float(v) if v is not None else 0.0)
+            except Exception:
+                vals.append(0.0)
+        numeric_rows.append(vals)
+
+    X_num = np.array(numeric_rows, dtype=float)
+    # standardize numeric columns
+    if X_num.size == 0:
+        X_num_scaled = X_num
+    else:
+        scaler = StandardScaler()
+        X_num_scaled = scaler.fit_transform(X_num)
+
+    # combine sparse TF-IDF with dense numeric features
+    if X_num_scaled.size == 0:
+        X = X_text
+    else:
+        X_num_sparse = sparse.csr_matrix(X_num_scaled)
+        X = sparse.hstack([X_text, X_num_sparse], format='csr')
 
     # Use stratified split where possible
     stratify = y if len(set(y)) > 1 else None
@@ -81,7 +150,11 @@ def build_and_train(df: pd.DataFrame, out_dir: str = 'tools') -> None:
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify)
 
-    clf = LogisticRegression(max_iter=2000, multi_class='multinomial', solver='saga')
+    # Create classifier with broad compatibility across sklearn versions
+    try:
+        clf = LogisticRegression(max_iter=2000, multi_class='multinomial', solver='saga')
+    except TypeError:
+        clf = LogisticRegression(max_iter=2000, solver='lbfgs')
     clf.fit(X_train, y_train)
 
     y_pred = clf.predict(X_test)

@@ -26,6 +26,9 @@ from services.temporal_features import extract_temporal_features
 
 router = APIRouter()
 
+# runtime flag copied from config for easier use in handlers
+fast_mode = bool(FAST_ANALYSIS_MODE)
+
 
 def _hash_password(password: str) -> str:
     """PBKDF2 hash for persisted credentials in demo environment."""
@@ -180,13 +183,13 @@ def create_or_update_user(
     }
 
 
-@router.post('/upload')
+@router.post('/upload', response_model=None)
 async def upload_and_analyze(
+    background_tasks: BackgroundTasks,
     audio: UploadFile = File(...),
     user_id: int = Form(...),
     transcript: str = Form(''),
     quick: bool = Form(False),
-    background_tasks: BackgroundTasks | None = None,
     db: DBSession = Depends(get_db),
 ):
     """
@@ -222,31 +225,26 @@ async def upload_and_analyze(
     with open(filepath, 'wb') as file_obj:
         file_obj.write(audio_bytes)
 
-    # Always perform full audio/transcript analysis synchronously to produce
-    # real extracted features (no heuristic fallbacks). This ensures CSI uses
-    # actual acoustic/temporal/linguistic signals.
+    # Initialize defaults
+    acoustic, temporal, linguistic = {}, {}, {}
+    preprocess_result = {'duration_sec': 0, 'speech_duration_sec': 0, 'speech_ratio': 0, 'num_segments': 0}
+
     try:
-        y, sr_loaded = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
-        sr = int(sr_loaded)
+        if not fast_mode:
+            y, sr_loaded = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
+            sr = int(sr_loaded)
+            preprocess_result = preprocess_audio(y, sr)
+            acoustic = extract_all_acoustic_features(preprocess_result['y_speech'], sr)
+            temporal = extract_temporal_features(preprocess_result['y_clean'], sr, preprocess_result['intervals'])
+            temporal.update({
+                'speech_ratio': round(float(preprocess_result['speech_ratio']), 4),
+                'speech_duration_sec': round(float(preprocess_result['speech_duration_sec']), 4),
+                'speech_segment_count': int(preprocess_result['num_segments']),
+            })
+            linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
-
-    preprocess_result = preprocess_audio(y, sr)
-
-    acoustic = extract_all_acoustic_features(preprocess_result['y_speech'], sr)
-
-    temporal = extract_temporal_features(
-        preprocess_result['y_clean'], sr, preprocess_result['intervals']
-    )
-    temporal.update(
-        {
-            'speech_ratio': round(float(preprocess_result['speech_ratio']), 4),
-            'speech_duration_sec': round(float(preprocess_result['speech_duration_sec']), 4),
-            'speech_segment_count': int(preprocess_result['num_segments']),
-        }
-    )
-
-    linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
+        if not fast_mode:
+            raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
 
     session_row = Session(
         user_id=user_id,
@@ -291,60 +289,9 @@ async def upload_and_analyze(
             csi_data['raw_csi_score'] = raw_csi
             csi_data['csi_score'] = smoothed_csi
 
-    # Debug/logging: print feature availability and CSI internals to server logs
-    try:
-        print(f"[analysis] session={session_row.id} user={user_id} features: acoustic={len(acoustic)} temporal={len(temporal)} linguistic={len(linguistic)}")
-        if isinstance(session_row.z_scores, dict):
-            print(f"[analysis] z_scores count={len(session_row.z_scores)}")
-        print(f"[analysis] computed_csi={csi_data.get('csi_score')} interpretation={csi_data.get('interpretation')}")
-    except Exception:
-        pass
-
-    # If fast mode was used but we already have a baseline, perform full analysis
-    # synchronously so that real extracted features are used for z-scores/CSI
-    # instead of placeholder/empty values.
-    if fast_mode and baseline is not None:
-        # Run the same full-analysis routine used by the background worker.
-        try:
-            _run_full_analysis_background(session_row.id, filepath, transcript, user_id)
-            # Reload updated session values
-            db.refresh(session_row)
-            # Recompute using the freshly stored features
-            baseline = compute_baseline(db, user_id)
-            if baseline is not None:
-                all_features = {}
-                all_features.update(session_row.acoustic_features or {})
-                all_features.update(session_row.temporal_features or {})
-                all_features.update(session_row.linguistic_features or {})
-                z_scores = compute_z_scores(baseline, all_features)
-                drift_data = compute_drift(db, user_id, z_scores)
-                csi_data = compute_csi(z_scores, drift_data)
-                # Smooth against previous session if present
-                if last_session and last_session.csi_score is not None:
-                    raw_csi = int(csi_data['csi_score'])
-                    prev_csi = int(last_session.csi_score)
-                    smoothed_csi = int(round((0.50 * prev_csi) + (0.50 * raw_csi)))
-                    max_step = 8
-                    smoothed_csi = max(prev_csi - max_step, min(prev_csi + max_step, smoothed_csi))
-                    csi_data['raw_csi_score'] = raw_csi
-                    csi_data['csi_score'] = smoothed_csi
-                # write back final values
-                session_row.z_scores = z_scores
-                session_row.drift_scores = drift_data
-                session_row.csi_score = int(csi_data['csi_score'])
-                user.latest_csi_score = session_row.csi_score
-                db.add(session_row)
-                db.add(user)
-                db.commit()
-        except Exception:
-            # If synchronous full analysis fails, fall back to scheduled background task
-            if background_tasks is not None:
-                background_tasks.add_task(_run_full_analysis_background, session_row.id, filepath, transcript, user_id)
-
     biomarker_interpretation = csi_data.get('interpretation', '')
     content_interpretation = _spoken_content_interpretation(transcript, csi_data, session_number)
     csi_data['biomarker_interpretation'] = biomarker_interpretation
-    csi_data['content_interpretation'] = content_interpretation
     csi_data['interpretation'] = content_interpretation
 
     session_row.z_scores = z_scores

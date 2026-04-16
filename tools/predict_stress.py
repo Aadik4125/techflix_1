@@ -38,9 +38,17 @@ def main():
     X = vec.transform([args.text])
     pred = clf.predict(X)[0]
     probs = clf.predict_proba(X)[0]
-    labels = clf.classes_
+    labels = list(clf.classes_)
+
+    # Map classes to numeric centers (0-100 scale) and compute probability-weighted score
+    centers = {'low': 10.0, 'medium': 50.0, 'high': 90.0}
+    score = 0.0
+    for lab, p in zip(labels, probs):
+        center = centers.get(lab, 50.0)
+        score += p * center
 
     print('Prediction:', pred)
+    print(f'Probability-weighted score: {score:.2f} / 100')
     print('Class probabilities:')
     for lab, p in zip(labels, probs):
         print(f'  {lab}: {p:.4f}')

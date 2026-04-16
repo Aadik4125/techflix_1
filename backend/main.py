@@ -22,6 +22,7 @@ from models.user import User
 from routes.audio import router as audio_router
 from routes.analysis import router as analysis_router
 from routes.dashboard import router as dashboard_router
+from routes.rag import router as rag_router
 
 
 @asynccontextmanager
@@ -66,6 +67,7 @@ app.add_middleware(
 app.include_router(audio_router, prefix='/api', tags=['Audio'])
 app.include_router(analysis_router, prefix='/api', tags=['Analysis'])
 app.include_router(dashboard_router, prefix='/api', tags=['Dashboard'])
+app.include_router(rag_router, prefix='/api', tags=['RAG'])
 
 
 @app.get('/api/health')

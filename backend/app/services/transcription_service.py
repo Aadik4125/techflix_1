@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-
 import requests
 
 from app.core.settings import get_settings
@@ -19,9 +17,9 @@ def transcribe_audio(audio_bytes: bytes) -> str:
             url=f"https://api-inference.huggingface.co/models/{settings.hf_stt_model}",
             headers={
                 "Authorization": f"Bearer {settings.hf_api_key}",
-                "Content-Type": "application/json",
+                "Content-Type": "audio/wav",
             },
-            json={"inputs": base64.b64encode(audio_bytes).decode("utf-8")},
+            data=audio_bytes,
             timeout=60,
         )
         if response.ok:
@@ -34,4 +32,3 @@ def transcribe_audio(audio_bytes: bytes) -> str:
         return ""
 
     return ""
-

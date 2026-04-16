@@ -17,6 +17,7 @@ librosa
 numpy
 scipy
 nltk
+joblib
 
 # Optional / tooling
 dvc
