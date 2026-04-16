@@ -222,41 +222,31 @@ async def upload_and_analyze(
     with open(filepath, 'wb') as file_obj:
         file_obj.write(audio_bytes)
 
-    # allow request to force a fast/quick analysis regardless of env var
-    fast_mode = FAST_ANALYSIS_MODE or quick
-    if fast_mode:
-        preprocess_result = {
-            'duration_sec': 0.0,
-            'speech_duration_sec': 0.0,
-            'speech_ratio': 0.0,
-            'num_segments': 0,
+    # Always perform full audio/transcript analysis synchronously to produce
+    # real extracted features (no heuristic fallbacks). This ensures CSI uses
+    # actual acoustic/temporal/linguistic signals.
+    try:
+        y, sr_loaded = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
+        sr = int(sr_loaded)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
+
+    preprocess_result = preprocess_audio(y, sr)
+
+    acoustic = extract_all_acoustic_features(preprocess_result['y_speech'], sr)
+
+    temporal = extract_temporal_features(
+        preprocess_result['y_clean'], sr, preprocess_result['intervals']
+    )
+    temporal.update(
+        {
+            'speech_ratio': round(float(preprocess_result['speech_ratio']), 4),
+            'speech_duration_sec': round(float(preprocess_result['speech_duration_sec']), 4),
+            'speech_segment_count': int(preprocess_result['num_segments']),
         }
-        acoustic = {}
-        temporal = {}
-        linguistic = _fast_linguistic_fallback(transcript) if transcript.strip() else {}
-    else:
-        try:
-            y, sr_loaded = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
-            sr = int(sr_loaded)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
+    )
 
-        preprocess_result = preprocess_audio(y, sr)
-
-        acoustic = extract_all_acoustic_features(preprocess_result['y_speech'], sr)
-
-        temporal = extract_temporal_features(
-            preprocess_result['y_clean'], sr, preprocess_result['intervals']
-        )
-        temporal.update(
-            {
-                'speech_ratio': round(float(preprocess_result['speech_ratio']), 4),
-                'speech_duration_sec': round(float(preprocess_result['speech_duration_sec']), 4),
-                'speech_segment_count': int(preprocess_result['num_segments']),
-            }
-        )
-
-        linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
+    linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
 
     session_row = Session(
         user_id=user_id,
@@ -300,6 +290,15 @@ async def upload_and_analyze(
             smoothed_csi = max(prev_csi - max_step, min(prev_csi + max_step, smoothed_csi))
             csi_data['raw_csi_score'] = raw_csi
             csi_data['csi_score'] = smoothed_csi
+
+    # Debug/logging: print feature availability and CSI internals to server logs
+    try:
+        print(f"[analysis] session={session_row.id} user={user_id} features: acoustic={len(acoustic)} temporal={len(temporal)} linguistic={len(linguistic)}")
+        if isinstance(session_row.z_scores, dict):
+            print(f"[analysis] z_scores count={len(session_row.z_scores)}")
+        print(f"[analysis] computed_csi={csi_data.get('csi_score')} interpretation={csi_data.get('interpretation')}")
+    except Exception:
+        pass
 
     # If fast mode was used but we already have a baseline, perform full analysis
     # synchronously so that real extracted features are used for z-scores/CSI
