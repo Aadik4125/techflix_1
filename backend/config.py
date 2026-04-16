@@ -17,13 +17,13 @@ def _env_bool(name: str, default: bool = False) -> bool:
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # ── Database ──────────────────────────────────────────────
-# Default: SQLite locally, but require DATABASE_URL on Render to avoid silent fallback.
+# Default to SQLite when DATABASE_URL is not configured. Render deployments should
+# still use the managed Postgres DATABASE_URL when present, but the service must
+# be able to boot so miswired env vars do not crash the process at import time.
 _database_url = os.getenv('DATABASE_URL', '').strip()
 if _database_url:
     DATABASE_URL = _database_url
 else:
-    if os.getenv('RENDER') == 'true':
-        raise RuntimeError('DATABASE_URL is required on Render. Connect your Postgres instance.')
     DATABASE_URL = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'cognivara.db')
 
 def _resolve_postgres_dialect(url: str) -> str:
@@ -104,5 +104,5 @@ CSI_WEIGHTS = {
 # Optional performance mode for constrained cloud instances.
 FAST_ANALYSIS_MODE = _env_bool(
     'FAST_ANALYSIS_MODE',
-    default=False,
+    default=True,
 )

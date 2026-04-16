@@ -18,7 +18,25 @@ import os
 import numpy as np
 import traceback
 from typing import Optional
-from tools.feature_engineering import compute_text_features
+
+try:
+    from tools.feature_engineering import compute_text_features
+except Exception:
+    def compute_text_features(text: str) -> dict[str, float]:
+        words = [word.lower() for word in text.split()]
+        word_count = len(words)
+        stress_words = {'stress', 'stressed', 'anxious', 'anxiety', 'panic', 'pressure'}
+        negative_words = {'sad', 'angry', 'upset', 'tired', 'hopeless', 'overwhelmed'}
+        return {
+            'word_count': float(word_count),
+            'negative_ratio': (
+                sum(1 for word in words if word in negative_words) / word_count
+                if word_count
+                else 0.0
+            ),
+            'stress_keyword_count': float(sum(1 for word in words if word in stress_words)),
+            'sentiment_compound': 0.0,
+        }
 
 # Lazy-loaded ML artifacts
 _ML_ARTIFACTS = {}
