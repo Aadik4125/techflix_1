@@ -9,6 +9,7 @@ import re
 from typing import Any
 
 import librosa
+import numpy as np
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session as DBSession
 
@@ -58,6 +59,127 @@ def _fast_linguistic_fallback(text: str) -> dict[str, float]:
         'word_count': word_count,
         'sentence_count': sentence_count,
     }
+
+
+def _rms_intervals(y: np.ndarray, frame_length: int, hop_length: int, threshold: float) -> list[tuple[int, int]]:
+    rms = np.asarray(
+        librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)[0],
+        dtype=float,
+    )
+    if rms.size == 0:
+        return []
+
+    active = rms > threshold
+    intervals: list[tuple[int, int]] = []
+    start: int | None = None
+    for idx, is_active in enumerate(active):
+        if is_active and start is None:
+            start = idx
+        elif not is_active and start is not None:
+            intervals.append((start * hop_length, min(len(y), idx * hop_length + frame_length)))
+            start = None
+    if start is not None:
+        intervals.append((start * hop_length, len(y)))
+    return intervals
+
+
+def _quick_actual_features(audio_bytes: bytes, transcript: str) -> tuple[dict[str, float], dict[str, float], dict[str, float], dict[str, float]]:
+    """Compute real, low-cost features for the fast response path."""
+    y, sr_loaded = librosa.load(io.BytesIO(audio_bytes), sr=8000, mono=True)
+    sr = int(sr_loaded)
+    if y.size == 0:
+        raise ValueError('Uploaded audio is empty')
+
+    max_samples = sr * 35
+    if y.size > max_samples:
+        y = y[:max_samples]
+
+    y = np.asarray(y, dtype=np.float32)
+    duration_sec = float(len(y)) / sr
+    frame_length = 512
+    hop_length = 256
+
+    rms = np.asarray(
+        librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)[0],
+        dtype=float,
+    )
+    rms_mean = float(np.mean(rms)) if rms.size else 0.0
+    rms_var = float(np.var(rms)) if rms.size else 0.0
+    threshold = max(float(np.percentile(rms, 60)) * 0.55, rms_mean * 0.35, 1e-5) if rms.size else 1e-5
+    intervals = _rms_intervals(y, frame_length, hop_length, threshold)
+    speech_samples = sum(max(0, end - start) for start, end in intervals)
+    speech_duration_sec = float(speech_samples) / sr
+    speech_ratio = speech_duration_sec / duration_sec if duration_sec else 0.0
+
+    if rms.size:
+        active_frames = int(np.count_nonzero(rms > threshold))
+        speech_rate = (active_frames / max(rms.size, 1)) * 4.0
+    else:
+        speech_rate = 0.0
+
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=8, n_fft=512, hop_length=hop_length)
+    centroid = librosa.feature.spectral_centroid(y=y, sr=sr, n_fft=512, hop_length=hop_length)[0]
+
+    pitches = librosa.yin(
+        y,
+        fmin=75,
+        fmax=400,
+        sr=sr,
+        frame_length=1024,
+        hop_length=hop_length,
+    )
+    pitches = np.asarray(pitches, dtype=float)
+    valid_pitch = pitches[np.isfinite(pitches) & (pitches > 0)]
+    pitch_diffs = np.abs(np.diff(valid_pitch)) if valid_pitch.size > 1 else np.array([], dtype=float)
+    rms_diffs = np.abs(np.diff(rms)) if rms.size > 1 else np.array([], dtype=float)
+
+    pauses: list[float] = []
+    if intervals:
+        first_start = intervals[0][0]
+        if first_start > 0:
+            pauses.append(first_start / sr)
+        for (_, previous_end), (next_start, _) in zip(intervals, intervals[1:]):
+            gap = max(0, next_start - previous_end) / sr
+            if gap >= 0.12:
+                pauses.append(gap)
+
+    words = re.findall(r"[a-zA-Z']+", transcript or '')
+    word_count = len(words)
+    acoustic = {
+        'mfcc_variance_avg': round(float(np.mean(np.var(mfcc, axis=1))), 4),
+        'pitch_mean': round(float(np.mean(valid_pitch)), 4) if valid_pitch.size else 0.0,
+        'pitch_var': round(float(np.var(valid_pitch)), 4) if valid_pitch.size else 0.0,
+        'pitch_range': round(float(np.ptp(valid_pitch)), 4) if valid_pitch.size else 0.0,
+        'voiced_fraction': round(float(valid_pitch.size / max(len(pitches), 1)), 4),
+        'jitter_local': round(float(np.mean(pitch_diffs) / (np.mean(valid_pitch) + 1e-6)), 4) if pitch_diffs.size and valid_pitch.size else 0.0,
+        'shimmer_local': round(float(np.mean(rms_diffs) / (rms_mean + 1e-6)), 4) if rms_diffs.size else 0.0,
+        'spectral_centroid_mean': round(float(np.mean(centroid)), 4) if centroid.size else 0.0,
+        'spectral_centroid_var': round(float(np.var(centroid)), 4) if centroid.size else 0.0,
+        'energy_mean': round(rms_mean, 6),
+        'energy_var': round(rms_var, 6),
+        'speech_rate': round(float(word_count / max(speech_duration_sec, 1.0)), 4) if word_count else round(speech_rate, 4),
+        'duration_sec': round(duration_sec, 4),
+    }
+    temporal = {
+        'response_latency': round(float(pauses[0]), 4) if pauses else 0.0,
+        'rhythm_consistency': round(float(1.0 / (1.0 + np.std(rms))), 4) if rms.size else 0.0,
+        'pause_variability': round(float(np.std(pauses)), 4) if pauses else 0.0,
+        'speed_variability': round(float(np.std(rms) / (rms_mean + 1e-6)), 4) if rms.size else 0.0,
+        'mean_pause_duration': round(float(np.mean(pauses)), 4) if pauses else 0.0,
+        'max_pause_duration': round(float(np.max(pauses)), 4) if pauses else 0.0,
+        'pause_count': float(len(pauses)),
+        'speech_ratio': round(float(speech_ratio), 4),
+        'speech_duration_sec': round(float(speech_duration_sec), 4),
+        'speech_segment_count': float(len(intervals)),
+    }
+    linguistic = _fast_linguistic_fallback(transcript)
+    preprocess_result = {
+        'duration_sec': round(duration_sec, 4),
+        'speech_duration_sec': round(float(speech_duration_sec), 4),
+        'speech_ratio': round(float(speech_ratio), 4),
+        'num_segments': len(intervals),
+    }
+    return acoustic, temporal, linguistic, preprocess_result
 
 
 def _spoken_content_interpretation(
@@ -229,8 +351,12 @@ async def upload_and_analyze(
     acoustic, temporal, linguistic = {}, {}, {}
     preprocess_result = {'duration_sec': 0, 'speech_duration_sec': 0, 'speech_ratio': 0, 'num_segments': 0}
 
+    use_quick_analysis = fast_mode or quick
+
     try:
-        if not fast_mode:
+        if use_quick_analysis:
+            acoustic, temporal, linguistic, preprocess_result = _quick_actual_features(audio_bytes, transcript)
+        else:
             y, sr_loaded = librosa.load(io.BytesIO(audio_bytes), sr=16000, mono=True)
             sr = int(sr_loaded)
             preprocess_result = preprocess_audio(y, sr)
@@ -243,8 +369,7 @@ async def upload_and_analyze(
             })
             linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
     except Exception as exc:
-        if not fast_mode:
-            raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
+        raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
 
     session_row = Session(
         user_id=user_id,
@@ -302,8 +427,9 @@ async def upload_and_analyze(
     user.last_session_at = session_row.created_at
     db.commit()
 
-    # If this was a quick/fast request, schedule the full analysis in the background
-    if fast_mode and background_tasks is not None:
+    # Fast/quick responses already include actual signal-derived features. Only
+    # run the heavier refinement when the caller did not explicitly ask for quick.
+    if use_quick_analysis and not quick and background_tasks is not None:
         # Run full analysis asynchronously to avoid blocking the request.
         background_tasks.add_task(_run_full_analysis_background, session_row.id, filepath, transcript, user_id)
 
@@ -326,7 +452,7 @@ async def upload_and_analyze(
         'z_scores': z_scores,
         'drift': drift_data,
         'csi': csi_data,
-        'analysis_mode': 'fast' if FAST_ANALYSIS_MODE else 'full',
+        'analysis_mode': 'quick_actual' if use_quick_analysis else 'full',
     }
 
 

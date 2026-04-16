@@ -28,6 +28,7 @@ async function uploadToCogniVara(audioBlob, transcript, userId) {
     fd.append('audio', audioBlob, 'recording.wav');
     fd.append('user_id', String(userId));
     fd.append('transcript', transcript || '');
+    fd.append('quick', 'true');
     const resp = await fetch(base + '/api/upload', { method: 'POST', body: fd });
     if (!resp.ok) {
       console.warn('[CogniVara] Upload failed:', resp.status);

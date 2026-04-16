@@ -1249,13 +1249,12 @@
     .waveform-card {
       grid-column: 1/-1;
       background:
-        radial-gradient(circle at top right, rgba(40, 123, 255, 0.08), transparent 28%),
-        radial-gradient(circle at bottom left, rgba(41, 214, 178, 0.10), transparent 34%),
-        linear-gradient(180deg, #f9fbff 0%, #f4f8fd 100%);
-      border: 1px solid rgba(115, 143, 184, 0.18);
+        linear-gradient(135deg, rgba(26, 110, 181, 0.16), transparent 42%),
+        linear-gradient(180deg, rgba(10, 24, 44, 0.98) 0%, rgba(7, 17, 33, 0.98) 100%);
+      border: 1px solid rgba(75, 121, 184, 0.26);
       border-radius: var(--radius-md);
       padding: 30px;
-      box-shadow: 0 24px 48px rgba(20, 44, 86, 0.08);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.26);
     }
 
     .waveform-header {
@@ -1268,12 +1267,12 @@
     .waveform-header h3 {
       font-size: 15px;
       font-weight: 600;
-      color: #17345f;
+      color: #d8e8ff;
     }
 
     .waveform-header p {
       font-size: 12px;
-      color: #607695;
+      color: #7f96b8;
       margin-top: 3px;
     }
 
@@ -1288,18 +1287,18 @@
       align-items: center;
       gap: 6px;
       font-size: 12px;
-      color: #4f6382;
+      color: #b8c9e4;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.68);
-      border: 1px solid rgba(136, 158, 192, 0.2);
+      background: rgba(16, 31, 53, 0.82);
+      border: 1px solid rgba(91, 141, 238, 0.22);
     }
 
     .legend-dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.55);
+      box-shadow: 0 0 0 4px rgba(213, 229, 255, 0.14);
     }
 
     .waveform-container {
@@ -1308,7 +1307,9 @@
       margin-bottom: 10px;
       padding: 8px 0 6px;
       border-radius: 22px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(240,246,255,0.88) 100%);
+      background:
+        linear-gradient(180deg, rgba(15, 36, 63, 0.96) 0%, rgba(10, 24, 44, 0.98) 100%);
+      border: 1px solid rgba(91, 141, 238, 0.18);
       overflow: hidden;
     }
 
@@ -1320,7 +1321,7 @@
     .waveform-timeline {
       display: flex;
       position: relative;
-      border-top: 1px solid rgba(136, 158, 192, 0.24);
+      border-top: 1px solid rgba(91, 141, 238, 0.2);
       padding-top: 10px;
       height: 26px;
     }
@@ -1332,7 +1333,7 @@
 
     .tick-time {
       font-size: 11px;
-      color: #7286a4;
+      color: #8ea4c6;
     }
 
     .marker-container {
@@ -1363,8 +1364,8 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      border: 2px solid white;
-      box-shadow: 0 8px 18px rgba(23, 52, 95, 0.18);
+      border: 2px solid #d8e8ff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
       flex-shrink: 0;
       margin-top: -6px;
       transition: transform 0.2s, box-shadow 0.2s;
@@ -1430,9 +1431,9 @@
       margin-top: 18px;
       padding: 16px 18px;
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.78);
-      border: 1px solid rgba(136, 158, 192, 0.22);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+      background: rgba(12, 27, 48, 0.9);
+      border: 1px solid rgba(91, 141, 238, 0.22);
+      box-shadow: inset 0 1px 0 rgba(216,232,255,0.08);
     }
 
     .waveform-detail-head {
@@ -1447,21 +1448,21 @@
       font-weight: 700;
       letter-spacing: 1.1px;
       text-transform: uppercase;
-      color: #5f789d;
+      color: #7f96b8;
     }
 
     .waveform-detail-time {
       font-family: 'Outfit', sans-serif;
       font-size: 14px;
       font-weight: 700;
-      color: #17345f;
+      color: #d8e8ff;
     }
 
     .waveform-detail-title {
       font-family: 'Outfit', sans-serif;
       font-size: 20px;
       font-weight: 700;
-      color: #17345f;
+      color: #eaf3ff;
       letter-spacing: -0.02em;
     }
 
@@ -1469,7 +1470,7 @@
       margin: 0;
       font-size: 13px;
       line-height: 1.6;
-      color: #607695;
+      color: #a5b8d4;
     }
 
     .graphs-section {

@@ -1139,6 +1139,7 @@
           fd.append('audio', blob, fileName || `session-${sessionId}.wav`);
           fd.append('user_id', String(userId));
           fd.append('transcript', transcriptText || '');
+          fd.append('quick', 'true');
 
           const ctrl = new AbortController();
           const timeout = setTimeout(() => ctrl.abort(), 8000);
