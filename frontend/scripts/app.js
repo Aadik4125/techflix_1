@@ -1699,6 +1699,16 @@
       if (userAnalysis) showDashboard();
     }
 
+    function showScientificFoundation() {
+      hideAllPages();
+      updateNav('nav-foundation');
+
+      // Load scientific foundation component instead of showing embedded section
+      loadComponent('scientific-foundation', 'main-content');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     // ══════════════════════════════════════════════
     //  PAGE NAVIGATION
     // ══════════════════════════════════════════════
@@ -1714,6 +1724,7 @@
       const heroSection = document.getElementById('hero-section');
       const recordingSection = document.getElementById('recording-section');
       const dashboard = document.getElementById('dashboard');
+      const scientificFoundation = document.getElementById('scientific-foundation');
       const profile = document.getElementById('profile-page');
       const settings = document.getElementById('settings-page');
       const compare = document.getElementById('compare-page');
@@ -1725,6 +1736,7 @@
 
       // Do not override explicit nav states for other pages.
       if (dashboard.classList.contains('show')) return;
+      if (scientificFoundation.classList.contains('show')) return;
       if (profile.style.display === 'block' || settings.style.display === 'block' || compare.style.display === 'block') return;
 
       const nav = document.querySelector('nav');
@@ -1738,6 +1750,8 @@
       document.getElementById('hero-section').style.display = 'none';
       document.getElementById('recording-section').style.display = 'none';
       document.getElementById('dashboard').classList.remove('show');
+      document.getElementById('scientific-foundation').classList.remove('show');
+      document.getElementById('scientific-foundation').style.display = 'none';
       document.getElementById('profile-page').style.display = 'none';
       document.getElementById('settings-page').style.display = 'none';
       document.getElementById('compare-page').style.display = 'none';
@@ -1911,6 +1925,15 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function showScientificFoundation() {
+      hideAllPages();
+      updateNav('nav-foundation');
+      document.getElementById('scientific-foundation').classList.add('show');
+      document.getElementById('scientific-foundation').style.display = 'block';
+      document.getElementById('profile-dropdown').classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function saveSettings() {
       const existing = getStoredUser();
       const user = {
@@ -1934,6 +1957,40 @@
     // ══════════════════════════════════════════════
     function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
     function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
+
+    // ══════════════════════════════════════════════
+    //  RESEARCH MODAL
+    // ══════════════════════════════════════════════
+    function openResearchModal() {
+      const modal = document.getElementById('research-modal');
+      if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      }
+    }
+
+    function closeResearchModal() {
+      const modal = document.getElementById('research-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = ''; // Restore scrolling
+      }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+      const modal = document.getElementById('research-modal');
+      if (modal && event.target === modal) {
+        closeResearchModal();
+      }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeResearchModal();
+      }
+    });
 
     async function syncUserWithBackend(user) {
       let lastErr = null;
@@ -2035,11 +2092,11 @@
     //  WAVEFORM
     // ══════════════════════════════════════════════
     const waveformEvents = [
-      { pct: 23, time: '00:07', label: 'Pitch Spike', color: '#2f7dd1', detail: 'A sharp pitch excursion suggests abrupt vocal effort or emphasis at this point in the recording.' },
-      { pct: 40, time: '00:12', label: 'Elevated Stress', color: '#ef7d1a', detail: 'Stress-colored bars cluster here, indicating heightened vocal tension and denser energy variation.' },
-      { pct: 60, time: '00:18', label: 'Hesitation', color: '#f05252', detail: 'The waveform narrows and breaks into shorter pulses, consistent with a hesitation-heavy segment.' },
-      { pct: 76, time: '00:23', label: 'Negative Tone', color: '#f97316', detail: 'This segment is flagged for heavier tonal pressure and a more strained delivery pattern.' },
-      { pct: 90, time: '00:27', label: 'Reduced Pitch Variation', color: '#1cb5a3', detail: 'Pitch variation flattens toward the end of the session, suggesting lower expressiveness in the closing phrase.' }
+      { pct: 23, time: '00:07', label: 'Pitch Spike', color: '#1a6eb5', detail: 'A sharp pitch excursion suggests abrupt vocal effort or emphasis at this point in the recording.' },
+      { pct: 40, time: '00:12', label: 'Elevated Stress', color: '#f59e0b', detail: 'Stress-colored bars cluster here, indicating heightened vocal tension and denser energy variation.' },
+      { pct: 60, time: '00:18', label: 'Hesitation', color: '#ef4444', detail: 'The waveform narrows and breaks into shorter pulses, consistent with a hesitation-heavy segment.' },
+      { pct: 76, time: '00:23', label: 'Negative Tone', color: '#f59e0b', detail: 'This segment is flagged for heavier tonal pressure and a more strained delivery pattern.' },
+      { pct: 90, time: '00:27', label: 'Reduced Pitch Variation', color: '#1a6eb5', detail: 'Pitch variation flattens toward the end of the session, suggesting lower expressiveness in the closing phrase.' }
     ];
 
     function setWaveformDetail(eventInfo) {
@@ -2089,12 +2146,12 @@
         const motion = Math.sin(i * 0.42) * 0.45 + Math.sin(i * 0.11 + 1.7) * 0.22 + Math.cos(i * 0.07) * 0.18;
         const h = 10 + Math.abs(motion) * 34 + envelope * 16;
         const y = 46 - h / 2;
-        let c = '#78aee3';
-        if (i > 16 && i < 20) c = '#e8b949';
-        if (i > 28 && i < 34) c = '#f08b86';
-        if (i > 42 && i < 46) c = '#ef9f70';
-        if (i > 54 && i < 58) c = '#eda35f';
-        if (i > 64 && i < 68) c = '#37b9ab';
+        let c = '#64748b'; // Default muted color for non-event bars
+        if (i > 26 && i < 30) c = '#1a6eb5'; // Pitch Spike at 23% - blue
+        if (i > 46 && i < 50) c = '#f59e0b'; // Elevated Stress at 40% - amber
+        if (i > 70 && i < 74) c = '#ef4444'; // Hesitation at 60% - red
+        if (i > 89 && i < 93) c = '#f59e0b'; // Negative Tone at 76% - amber
+        if (i > 105 && i < 109) c = '#1a6eb5'; // Reduced Pitch Variation at 90% - blue
         html += `<rect class="waveform-bar" data-index="${i}" x="${x}" y="${y}" width="4.8" height="${h}" rx="2.4" fill="${c}" opacity="0.96"/>`;
       }
       svg.innerHTML = html;
@@ -2154,6 +2211,21 @@
         document.getElementById('profile-dropdown').classList.remove('show');
       }
     });
+
+    // ══════════════════════════════════════════════
+    //  FOOTER LINKS
+    // ══════════════════════════════════════════════
+    function showPrivacyPolicy() {
+      alert('Privacy Policy:\n\nCognivara collects voice recordings solely for cognitive risk analysis. All data is processed locally and not stored on external servers. Voice data is used only for real-time analysis and is not retained after processing. We comply with HIPAA guidelines for health-related data handling.');
+    }
+
+    function showTermsOfService() {
+      alert('Terms of Service:\n\nCognivara is provided for research and educational purposes only. This application is not intended for clinical diagnosis or medical decision-making. Users acknowledge that results are experimental and should not replace professional medical advice. Continued use constitutes acceptance of these terms.');
+    }
+
+    function showContact() {
+      alert('Contact Information:\n\nFor research inquiries: research@cognivara.ai\nFor technical support: support@cognivara.ai\nFor academic partnerships: partnerships@cognivara.ai\n\nCognivara is developed by researchers at leading AI institutions.');
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       initReveal();
