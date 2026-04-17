@@ -210,6 +210,27 @@
       return clampScore(Math.round(50 + (base - 50) * (1 - clampedPull)));
     }
 
+    function riskFromCsi(csi, drift = 0, options = {}) {
+      const csiScore = clampScore(csi ?? 50);
+      const driftScore = clampScore(drift);
+      const driftWeight = Number.isFinite(Number(options.driftWeight)) ? Number(options.driftWeight) : 0.12;
+      const pull = Number.isFinite(Number(options.pull)) ? Number(options.pull) : 0.12;
+      const rawRisk = clampScore(Math.round((100 - csiScore) * (1 - driftWeight) + driftScore * driftWeight));
+      return soberizeScore(rawRisk, pull);
+    }
+
+    function trendAdjustedLatestRisk(riskArr) {
+      const values = (riskArr || []).map(clampScore).filter(v => Number.isFinite(v));
+      if (!values.length) return 50;
+      const latest = values[values.length - 1];
+      if (values.length < 3) return latest;
+
+      const previous = values.slice(0, -1);
+      const priorMean = previous.reduce((a, b) => a + b, 0) / Math.max(previous.length, 1);
+      const trendAdjustment = Math.max(0, Math.min(4, (latest - priorMean) * 0.18));
+      return clampScore(Math.round(latest + trendAdjustment));
+    }
+
     function localHeuristicAnalysis(text) {
       const words = (text || '').toLowerCase().match(/[a-z']+/g) || [];
       const sentences = (text || '').split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
@@ -392,18 +413,7 @@
       const linArr = perSession.map(p => clampScore(p.lin));
       const riskArr = perSession.map(p => clampScore(p.risk));
 
-      const riskMean = riskArr.reduce((a, b) => a + b, 0) / Math.max(riskArr.length, 1);
-      const sortedRisk = [...riskArr].sort((a, b) => a - b);
-      const mid = Math.floor(sortedRisk.length / 2);
-      const riskMedian = sortedRisk.length % 2
-        ? sortedRisk[mid]
-        : Math.round((sortedRisk[mid - 1] + sortedRisk[mid]) / 2);
-      const spread = (sortedRisk[sortedRisk.length - 1] ?? 50) - (sortedRisk[0] ?? 50);
-      let riskScore = Math.round(riskMedian * 0.60 + riskMean * 0.40);
-      // Damp high volatility across sessions to keep scoring fair and stable.
-      const neutralPull = Math.max(0, Math.min(0.48, (spread - 10) / 70));
-      riskScore = clampScore(Math.round(riskScore * (1 - neutralPull) + 50 * neutralPull));
-      riskScore = soberizeScore(riskScore, 0.22);
+      const riskScore = trendAdjustedLatestRisk(riskArr);
 
       let riskLabel, riskClass, riskColor, gradStop1, gradStop2, deltaText, deltaArrow;
       if (riskScore < 45) {
@@ -420,10 +430,10 @@
         deltaText = `Elevated concern`; deltaArrow = 'up';
       }
 
-      const emoIdx = Math.round(emoArr.reduce((a, b) => a + b, 0) / Math.max(emoArr.length, 1));
-      const csiScore = Math.round(csiArr.reduce((a, b) => a + b, 0) / Math.max(csiArr.length, 1));
+      const emoIdx = emoArr[emoArr.length - 1] ?? 50;
+      const csiScore = csiArr[csiArr.length - 1] ?? 50;
       const cogIdx = csiScore;
-      const fluIdx = Math.round(linArr.reduce((a, b) => a + b, 0) / Math.max(linArr.length, 1));
+      const fluIdx = linArr[linArr.length - 1] ?? 50;
 
       return {
         riskScore, riskLabel, riskClass, riskColor, gradStop1, gradStop2,
@@ -505,9 +515,9 @@
           const driftRaw = Number(data?.drift?.overall_drift_score ?? 0);
           const driftNorm = clampScore(Math.round((Math.max(0, Math.min(3.5, driftRaw)) / 3.5) * 100));
 
-          // Backend-driven risk: primarily inverse CSI, with drift as secondary signal.
-          let risk = clampScore(Math.round((100 - csiRaw) * 0.86 + driftNorm * 0.14));
-          risk = soberizeScore(risk, 0.32);
+          // Backend-driven risk: inverse CSI is the primary signal; drift adds
+          // limited extra concern without overpowering the stability score.
+          let risk = riskFromCsi(csiRaw, driftNorm, { driftWeight: 0.12, pull: 0.10 });
 
           // Prevent abrupt visual jumps between consecutive sessions.
           if (prevRisk !== null) {
@@ -570,13 +580,13 @@
           const fallbackCsi = clampScore(jd?.latest_csi ?? 50);
           const csiArrRaw = csi.length ? csi : [fallbackCsi];
           const csiArr = csiArrRaw.slice(-Math.max(1, expectedSessions));
-          const riskArr = csiArr.map(v => soberizeScore(100 - v, 0.30));
-          const emoArr = csiArr.map(v => clampScore(v * 0.9 + 5));
+          const riskArr = csiArr.map(v => riskFromCsi(v, 0, { driftWeight: 0, pull: 0.10 }));
+          const emoArr = riskArr.map(v => clampScore(v * 0.72 + 14));
           const cogArr = csiArr.slice();
-          const hesArr = csiArr.map(v => clampScore(v * 0.75));
-          const linArr = csiArr.map(v => clampScore(100 - v * 0.6));
+          const hesArr = riskArr.map(v => clampScore(v * 0.78 + 10));
+          const linArr = csiArr.map(v => clampScore(v * 0.88 + 6));
 
-          const riskScore = riskArr[riskArr.length - 1] ?? 50;
+          const riskScore = trendAdjustedLatestRisk(riskArr);
           let riskLabel = 'Low Risk', riskClass = 'low', riskColor = '#10b981', gradStop1 = '#10b981', gradStop2 = '#06b6d4', deltaText = 'Healthy range', deltaArrow = 'down';
           if (riskScore >= 35 && riskScore < 65) {
             riskLabel = 'Moderate Risk'; riskClass = 'moderate'; riskColor = '#f59e0b';

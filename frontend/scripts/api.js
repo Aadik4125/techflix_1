@@ -112,7 +112,7 @@ async function computeUserAnalysis(transcripts) {
   const linArr = perSession.map(p => Math.max(0, Math.min(100, Math.round(p.lin || 0))));
   const riskArr = perSession.map(p => Math.max(0, Math.min(100, Math.round(p.risk || 0))));
 
-  const riskScore = Math.round(riskArr.reduce((a, b) => a + b, 0) / Math.max(riskArr.length, 1));
+  const riskScore = riskArr[riskArr.length - 1] ?? 50;
 
   let riskLabel, riskClass, riskColor, gradStop1, gradStop2, deltaText, deltaArrow;
   if (riskScore < 45) {
