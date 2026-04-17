@@ -233,6 +233,52 @@ def _quick_actual_features(audio_bytes: bytes, transcript: str) -> tuple[dict[st
     return acoustic, temporal, linguistic, preprocess_result
 
 
+def _tone_adjusted_csi(csi_data: dict[str, Any], linguistic: dict[str, Any]) -> dict[str, Any]:
+    """Lower CSI when transcript tone clearly indicates stress or negative affect."""
+    if not isinstance(csi_data, dict) or not isinstance(linguistic, dict):
+        return csi_data
+
+    tone_risk = float(linguistic.get('tone_risk') or 0.0)
+    tone_label = str(linguistic.get('tone_label') or '').lower()
+    negative_score = float(linguistic.get('negative_word_score') or 0.0)
+    positive_score = float(linguistic.get('positive_word_score') or 0.0)
+    word_count = int(float(linguistic.get('word_count') or 0))
+
+    if word_count < 3 or tone_risk < 45 or tone_label != 'strained':
+        return csi_data
+
+    current_csi = int(csi_data.get('csi_score', 50))
+    confidence = max(0.35, min(1.0, word_count / 24.0))
+
+    if tone_risk >= 65 or negative_score >= positive_score + 1.0:
+        target_csi = 37 + int(round((1.0 - confidence) * 4.0))
+    elif tone_risk >= 55:
+        target_csi = 41 + int(round((1.0 - confidence) * 4.0))
+    else:
+        target_csi = 45
+
+    adjusted_csi = min(current_csi, max(37, min(45, target_csi)))
+    if adjusted_csi == current_csi:
+        return csi_data
+
+    adjusted = dict(csi_data)
+    adjusted['pre_tone_csi_score'] = current_csi
+    adjusted['csi_score'] = adjusted_csi
+    adjusted['tone_adjustment'] = {
+        'tone_label': tone_label,
+        'tone_risk': round(tone_risk, 4),
+        'negative_word_score': round(negative_score, 4),
+        'positive_word_score': round(positive_score, 4),
+        'target_csi': target_csi,
+    }
+    adjusted['risk_level'] = 'high' if adjusted_csi < 45 else 'moderate'
+    adjusted['interpretation'] = (
+        f"Transcript tone indicated elevated stress ({tone_label}, tone risk {round(tone_risk)}), "
+        "so CSI was calibrated downward from the biomarker-only score."
+    )
+    return adjusted
+
+
 def _spoken_content_interpretation(
     transcript: str,
     csi_data: dict[str, Any],
@@ -419,6 +465,7 @@ async def upload_and_analyze(
                 'speech_segment_count': int(preprocess_result['num_segments']),
             })
             linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
+            linguistic.update(_fast_linguistic_fallback(transcript))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f'Failed to decode audio: {str(exc)}')
 
@@ -454,9 +501,10 @@ async def upload_and_analyze(
         z_scores = compute_z_scores(baseline, all_features)
         drift_data = compute_drift(db, user_id, z_scores)
         csi_data = compute_csi(z_scores, drift_data)
+        csi_data = _tone_adjusted_csi(csi_data, linguistic)
 
         # Smooth CSI against the previous scored session to reduce abrupt jumps.
-        if last_session and last_session.csi_score is not None:
+        if last_session and last_session.csi_score is not None and 'tone_adjustment' not in csi_data:
             raw_csi = int(csi_data['csi_score'])
             prev_csi = int(last_session.csi_score)
             smoothed_csi = int(round((0.50 * prev_csi) + (0.50 * raw_csi)))
@@ -548,6 +596,7 @@ def _run_full_analysis_background(session_id: int, filepath: str, transcript: st
         )
 
         linguistic = extract_linguistic_features(transcript) if transcript.strip() else {}
+        linguistic.update(_fast_linguistic_fallback(transcript))
 
         # Save full features back to session_row
         session_row.acoustic_features = acoustic
@@ -576,6 +625,7 @@ def _run_full_analysis_background(session_id: int, filepath: str, transcript: st
             z_scores = compute_z_scores(baseline, all_features)
             drift_data = compute_drift(db, user_id, z_scores)
             csi_data = compute_csi(z_scores, drift_data)
+            csi_data = _tone_adjusted_csi(csi_data, linguistic)
 
             # Smooth CSI against the previous scored session to reduce abrupt jumps.
             last_session = (
@@ -584,7 +634,7 @@ def _run_full_analysis_background(session_id: int, filepath: str, transcript: st
                 .order_by(Session.session_number.desc())
                 .first()
             )
-            if last_session and last_session.csi_score is not None:
+            if last_session and last_session.csi_score is not None and 'tone_adjustment' not in csi_data:
                 raw_csi = int(csi_data['csi_score'])
                 prev_csi = int(last_session.csi_score)
                 smoothed_csi = int(round((0.50 * prev_csi) + (0.50 * raw_csi)))
